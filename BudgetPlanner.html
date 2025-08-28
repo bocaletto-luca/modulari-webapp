@@ -1,0 +1,173 @@
+<!--
+  Application: BudgetPlanner
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BudgetPlanner — Personal Finance Tracker</title>
+<meta name="description" content="BudgetPlanner is a single-file, offline, responsive personal finance tracker to plan budgets and track expenses. GPL v3 by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="BudgetPlanner — Personal Finance Tracker">
+<meta property="og:description" content="Track income, expenses and budget in one HTML file, offline ready.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root{
+  --bg:#f9fafc; --panel:#fff; --text:#1d1f25; --muted:#6d727d;
+  --brand:#4caf50; --brand-dark:#3d9140; --radius:12px; --shadow:0 6px 18px rgba(0,0,0,.08);
+  --border:#e6e8ef; --income:#c8e6c9; --expense:#ffcdd2;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1016; --panel:#181b22; --text:#e6e9ef; --muted:#a5aab6;
+    --brand:#81c784; --brand-dark:#4caf50; --border:#2a2f3a;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:clamp(15px,1.2vw,16px)/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+header{
+  background:var(--panel); box-shadow:var(--shadow); padding:1rem; text-align:center;
+}
+header h1{margin:0; font-size:clamp(1.6rem,4vw,2.1rem)}
+header p{margin:.25rem 0 0; color:var(--muted)}
+main{flex:1; max-width:900px; margin:1rem auto 2rem; padding:0 1rem}
+.controls{
+  display:grid; gap:.75rem; background:var(--panel); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:1rem; margin-bottom:1rem; border:1px solid var(--border);
+}
+.controls .row{display:grid; gap:.5rem}
+.controls input, .controls select, .controls button{
+  font:inherit; padding:.6rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+@media(prefers-color-scheme:dark){
+  .controls input, .controls select, .controls button{background:#1d2230; color:var(--text)}
+}
+.controls button{
+  background:var(--brand); color:#fff; border:none; cursor:pointer;
+}
+.controls button:hover{background:var(--brand-dark)}
+@media(min-width:640px){
+  .controls .row{grid-template-columns:1fr 1fr 1fr}
+}
+.table{
+  width:100%; border-collapse:collapse;
+}
+.table th, .table td{
+  border:1px solid var(--border); padding:.5rem; text-align:left;
+}
+.table th{background:var(--panel)}
+.income{background:var(--income)}
+.expense{background:var(--expense)}
+.summary{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem; margin-top:1rem; box-shadow:var(--shadow);
+}
+.summary h2{margin-top:0}
+footer{
+  background:var(--panel); border-top:1px solid var(--border); color:var(--muted);
+  text-align:center; font-size:.9rem; padding:1rem;
+}
+footer a{color:var(--brand); text-decoration:none}
+footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <h1>BudgetPlanner</h1>
+  <p>Plan your budget and track your expenses</p>
+</header>
+<main>
+  <section class="controls" aria-label="Add entry">
+    <div class="row">
+      <input type="text" id="desc" placeholder="Description" required>
+      <input type="number" id="amount" placeholder="Amount" step="0.01" required>
+      <select id="type" required>
+        <option value="">Select type</option>
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+    </div>
+    <button id="addBtn" type="button">Add Entry</button>
+  </section>
+  <table class="table" id="table">
+    <thead>
+      <tr><th>Description</th><th>Amount</th><th>Type</th><th>Action</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="summary">
+    <h2>Summary</h2>
+    <p>Total Income: <strong id="totalIncome">0</strong></p>
+    <p>Total Expense: <strong id="totalExpense">0</strong></p>
+    <p>Balance: <strong id="balance">0</strong></p>
+  </div>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — BudgetPlanner
+</footer>
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const KEY='budgetplanner_entries';
+  $('#year').textContent=new Date().getFullYear();
+  const els={desc:$('#desc'),amount:$('#amount'),type:$('#type'),addBtn:$('#addBtn'),table:$('#table tbody'),
+    totalIncome:$('#totalIncome'),totalExpense:$('#totalExpense'),balance:$('#balance')};
+  let entries=JSON.parse(localStorage.getItem(KEY)||'[]');
+
+  function save(){localStorage.setItem(KEY,JSON.stringify(entries));}
+  function escapeHTML(str){return(str||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+
+  function render(){
+    els.table.innerHTML='';
+    let income=0,expense=0;
+    entries.forEach((e,i)=>{
+      if(e.type==='income') income+=e.amount; else expense+=e.amount;
+      const tr=document.createElement('tr');
+      tr.className=e.type;
+      tr.innerHTML=`<td>${escapeHTML(e.desc)}</td>
+        <td>${e.amount.toFixed(2)}</td>
+        <td>${e.type}</td>
+        <td><button data-index="${i}">Delete</button></td>`;
+      tr.querySelector('button').onclick=()=>{entries.splice(i,1);save();render();};
+      els.table.appendChild(tr);
+    });
+    els.totalIncome.textContent=income.toFixed(2);
+    els.totalExpense.textContent=expense.toFixed(2);
+    els.balance.textContent=(income-expense).toFixed(2);
+  }
+
+  function addEntry(){
+    const desc=els.desc.value.trim();
+    const amount=parseFloat(els.amount.value);
+    const type=els.type.value;
+    if(!desc||!amount||!type) return;
+    entries.push({desc,amount,type});
+    save();
+    els.desc.value=''; els.amount.value=''; els.type.value='';
+    els.desc.focus();
+    render();
+  }
+
+  els.addBtn.onclick=addEntry;
+  ['desc','amount','type'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown',e=>{
+      if(e.key==='Enter'){e.preventDefault();addEntry();}
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
