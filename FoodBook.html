@@ -1,0 +1,173 @@
+<!--
+  Application: FoodBook
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FoodBook — Share & Discover Recipes</title>
+<meta name="description" content="FoodBook is a responsive, offline, single-file web app to share and explore recipes. GPL v3 license by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="FoodBook — Share & Discover Recipes">
+<meta property="og:description" content="A minimalistic recipe manager in one HTML file.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #faf8f5;
+  --panel: #fff;
+  --text: #2c2c2c;
+  --muted: #666;
+  --brand: #ff7043;
+  --brand-dark: #e85c30;
+  --radius: 10px;
+  --shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --panel: #1e1e1e;
+    --text: #eaeaea;
+    --muted: #aaa;
+    --brand: #ff8c66;
+    --brand-dark: #ff7043;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: clamp(15px,1.2vw,16px)/1.5 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  padding: 1rem;
+  background: var(--panel);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+header h1 { margin: 0; font-size: clamp(1.5rem,4vw,2rem); }
+main {
+  flex: 1;
+  max-width: 900px;
+  margin: 1rem auto;
+  padding: 0 1rem;
+}
+form {
+  display: grid;
+  gap: 0.5rem;
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+form input, form textarea, form button {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+form button {
+  background: var(--brand);
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+form button:hover {
+  background: var(--brand-dark);
+}
+.recipe-list {
+  display: grid;
+  gap: 1rem;
+}
+.recipe {
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.recipe h3 { margin-top: 0; }
+.recipe p { margin: .3rem 0; }
+footer {
+  padding: 1rem;
+  text-align: center;
+  font-size: .9rem;
+  color: var(--muted);
+  background: var(--panel);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FoodBook</h1>
+  <p>Share your recipes, find new favorites</p>
+</header>
+<main>
+  <form id="recipeForm">
+    <input type="text" id="title" placeholder="Recipe title" required>
+    <textarea id="ingredients" placeholder="Ingredients (comma separated)" rows="3" required></textarea>
+    <textarea id="instructions" placeholder="Instructions" rows="4" required></textarea>
+    <button type="submit">Add Recipe</button>
+  </form>
+  <div class="recipe-list" id="recipeList"></div>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — FoodBook
+</footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+const form = document.getElementById('recipeForm');
+const list = document.getElementById('recipeList');
+let recipes = JSON.parse(localStorage.getItem('foodbook_recipes') || '[]');
+
+function renderRecipes(){
+  list.innerHTML = '';
+  recipes.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.className = 'recipe';
+    div.innerHTML = `
+      <h3>${r.title}</h3>
+      <p><strong>Ingredients:</strong> ${r.ingredients}</p>
+      <p>${r.instructions}</p>
+      <button data-index="${i}">Delete</button>
+    `;
+    div.querySelector('button').onclick = () => {
+      recipes.splice(i,1);
+      save();
+    };
+    list.appendChild(div);
+  });
+}
+
+function save(){
+  localStorage.setItem('foodbook_recipes', JSON.stringify(recipes));
+  renderRecipes();
+}
+
+form.onsubmit = e => {
+  e.preventDefault();
+  recipes.push({
+    title: form.title.value.trim(),
+    ingredients: form.ingredients.value.trim(),
+    instructions: form.instructions.value.trim()
+  });
+  form.reset();
+  save();
+};
+
+renderRecipes();
+</script>
+</body>
+</html>
