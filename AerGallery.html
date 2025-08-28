@@ -1,0 +1,396 @@
+<!--
+  Application: ArtGallery
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ArtGallery — Curate Your Collection</title>
+<meta name="description" content="ArtGallery è una webapp monofile, offline e responsive per catalogare opere d’arte con immagini, autore, anno e categoria. Licenza GPL v3.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="ArtGallery — Curate Your Collection">
+<meta property="og:description" content="Gestisci una galleria di opere d’arte in un’unica pagina HTML, senza dipendenze esterne.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #fafafe;
+  --panel: #ffffff;
+  --text: #1a1a1f;
+  --muted: #666a73;
+  --brand: #8a4fff;
+  --brand-dark: #6b38d6;
+  --radius: 12px;
+  --shadow: 0 6px 18px rgba(0,0,0,.08);
+  --border: #e5e7eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1116;
+    --panel: #181b22;
+    --text: #e9eaf0;
+    --muted: #a3a9b6;
+    --brand: #a787ff;
+    --brand-dark: #8a4fff;
+    --border: #2a2e39;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: clamp(15px,1.2vw,16px)/1.55 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  padding: 1rem;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+header h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.1rem); }
+header p { margin: .2rem 0 0; color: var(--muted); }
+main {
+  flex: 1;
+  max-width: 1100px;
+  margin: 1rem auto 2rem;
+  padding: 0 1rem;
+}
+.controls {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: 1fr;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.controls .row {
+  display: grid;
+  gap: .5rem;
+}
+.controls input, .controls select, .controls button, .controls textarea {
+  font: inherit;
+  padding: .6rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  .controls input, .controls select, .controls button, .controls textarea {
+    background: #1f2330;
+    color: var(--text);
+  }
+}
+.controls button {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.controls button:hover { background: var(--brand-dark); }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1rem;
+}
+.card {
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+}
+.thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(135deg, #efefef, #e6e9f0);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card .body {
+  padding: .8rem .9rem;
+}
+.card h3 {
+  margin: 0 0 .35rem;
+  font-size: 1.05rem;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem .6rem;
+  color: var(--muted);
+  font-size: .9rem;
+  margin-bottom: .4rem;
+}
+.actions {
+  display: flex;
+  gap: .5rem;
+  margin-top: .5rem;
+}
+.actions button {
+  flex: 1;
+  padding: .45rem .6rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+}
+.actions button:hover { background: rgba(0,0,0,.04); }
+@media (prefers-color-scheme: dark) {
+  .actions button:hover { background: rgba(255,255,255,.06); }
+}
+.toolbar {
+  display: grid;
+  gap: .5rem;
+  grid-template-columns: 1fr;
+  margin: 0 0 1rem;
+}
+.toolbar input, .toolbar select {
+  font: inherit;
+  padding: .55rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+@media (min-width: 720px) {
+  .controls .row { grid-template-columns: 1fr 1fr; }
+  .toolbar { grid-template-columns: 1fr 180px 160px; }
+}
+footer {
+  padding: 1rem;
+  text-align: center;
+  font-size: .9rem;
+  color: var(--muted);
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ArtGallery</h1>
+  <p>Catalog your artworks with images, authors, years and categories</p>
+</header>
+
+<main>
+  <section class="controls" aria-label="Add artwork">
+    <div class="row">
+      <input type="text" id="title" placeholder="Title" required>
+      <input type="text" id="author" placeholder="Author">
+    </div>
+    <div class="row">
+      <input type="number" id="year" placeholder="Year" min="0" max="9999">
+      <input type="text" id="category" placeholder="Category (e.g., Painting, Sculpture)">
+    </div>
+    <div class="row">
+      <input type="url" id="image" placeholder="Image URL (optional)">
+      <button id="addBtn" type="button">Add Artwork</button>
+    </div>
+  </section>
+
+  <section class="toolbar" aria-label="Filter and sort">
+    <input type="search" id="q" placeholder="Search by title, author or category">
+    <select id="filterCat">
+      <option value="">All categories</option>
+    </select>
+    <select id="sort">
+      <option value="created_desc">Sort: Newest added</option>
+      <option value="created_asc">Sort: Oldest added</option>
+      <option value="title_asc">Sort: Title A→Z</option>
+      <option value="title_desc">Sort: Title Z→A</option>
+      <option value="year_desc">Sort: Year ↓</option>
+      <option value="year_asc">Sort: Year ↑</option>
+    </select>
+  </section>
+
+  <section id="gallery" class="grid" aria-live="polite"></section>
+</main>
+
+<footer>
+  © <span id="yearNow"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — ArtGallery
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const yearEl = $('#yearNow');
+  yearEl.textContent = new Date().getFullYear();
+
+  const STORAGE_KEY = 'artgallery_items';
+  let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    .map(it => ({...it, createdAt: it.createdAt || Date.now()}));
+
+  const el = {
+    title: $('#title'),
+    author: $('#author'),
+    year: $('#year'),
+    category: $('#category'),
+    image: $('#image'),
+    addBtn: $('#addBtn'),
+    grid: $('#gallery'),
+    q: $('#q'),
+    filterCat: $('#filterCat'),
+    sort: $('#sort')
+  };
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
+
+  function categories(){
+    const set = new Set(items.map(i => (i.category || '').trim()).filter(Boolean));
+    return Array.from(set).sort((a,b)=>a.localeCompare(b));
+  }
+
+  function renderCategories(){
+    const cats = categories();
+    el.filterCat.innerHTML = '<option value="">All categories</option>' +
+      cats.map(c => `<option>${escapeHTML(c)}</option>`).join('');
+  }
+
+  function escapeHTML(str){
+    return (str || '').replace(/[&<>"']/g, s => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[s]));
+  }
+
+  function cardTemplate(it, idx){
+    const hasImg = (it.image || '').trim().length > 0;
+    return `
+      <article class="card" data-idx="${idx}">
+        ${hasImg
+          ? `<div class="thumb"><img loading="lazy" referrerpolicy="no-referrer" src="${escapeHTML(it.image)}" alt="${escapeHTML(it.title)}"></div>`
+          : `<div class="thumb">No image</div>`
+        }
+        <div class="body">
+          <h3>${escapeHTML(it.title)}</h3>
+          <div class="meta">
+            ${it.author ? `<span>By ${escapeHTML(it.author)}</span>` : ''}
+            ${it.year ? `<span>Year ${escapeHTML(String(it.year))}</span>` : ''}
+            ${it.category ? `<span>· ${escapeHTML(it.category)}</span>` : ''}
+          </div>
+          <div class="actions">
+            <button data-action="open">Open</button>
+            <button data-action="delete">Delete</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function applyFilters(list){
+    const q = el.q.value.trim().toLowerCase();
+    const cat = el.filterCat.value;
+    let out = list.filter(it => {
+      const hay = `${it.title} ${it.author||''} ${it.category||''}`.toLowerCase();
+      const matchQ = q ? hay.includes(q) : true;
+      const matchC = cat ? (it.category || '') === cat : true;
+      return matchQ && matchC;
+    });
+
+    switch(el.sort.value){
+      case 'created_asc': out.sort((a,b)=>a.createdAt-b.createdAt); break;
+      case 'title_asc': out.sort((a,b)=>a.title.localeCompare(b.title)); break;
+      case 'title_desc': out.sort((a,b)=>b.title.localeCompare(a.title)); break;
+      case 'year_desc': out.sort((a,b)=>(b.year||0)-(a.year||0)); break;
+      case 'year_asc': out.sort((a,b)=>(a.year||0)-(b.year||0)); break;
+      default: out.sort((a,b)=>b.createdAt-a.createdAt);
+    }
+    return out;
+  }
+
+  function render(){
+    renderCategories();
+    const view = applyFilters(items);
+    el.grid.innerHTML = view.map((it, idx) => cardTemplate(it, idx)).join('') || '';
+    el.grid.querySelectorAll('.card .actions button').forEach(btn => {
+      btn.onclick = (e) => {
+        const card = e.currentTarget.closest('.card');
+        const index = Number(card.dataset.idx);
+        const action = e.currentTarget.dataset.action;
+        if(action === 'delete'){
+          items.splice(index,1); save(); render();
+        } else if(action === 'open'){
+          const url = items[index].image;
+          if(url && url.trim()) window.open(url, '_blank', 'noopener');
+        }
+      };
+    });
+  }
+
+  function addArtwork(){
+    const title = el.title.value.trim();
+    if(!title){ el.title.focus(); return; }
+    const author = el.author.value.trim();
+    const year = el.year.value ? Number(el.year.value) : null;
+    const category = el.category.value.trim();
+    const image = el.image.value.trim();
+
+    items.push({
+      id: cryptoRandomId(),
+      title, author, year, category, image,
+      createdAt: Date.now()
+    });
+    save();
+    clearForm();
+    render();
+  }
+
+  function clearForm(){
+    el.title.value = '';
+    el.author.value = '';
+    el.year.value = '';
+    el.category.value = '';
+    el.image.value = '';
+    el.title.focus();
+  }
+
+  function cryptoRandomId(){
+    if(window.crypto && crypto.getRandomValues){
+      const a = new Uint32Array(4); crypto.getRandomValues(a);
+      return Array.from(a).map(x=>x.toString(16).padStart(8,'0')).join('');
+    }
+    return 'id-' + Math.random().toString(16).slice(2);
+  }
+
+  // events
+  el.addBtn.addEventListener('click', addArtwork);
+  el.q.addEventListener('input', render);
+  el.filterCat.addEventListener('change', render);
+  el.sort.addEventListener('change', render);
+  // Enter in inputs triggers add
+  ['title','author','year','category','image'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown', e=>{
+      if(e.key === 'Enter'){ e.preventDefault(); addArtwork(); }
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
