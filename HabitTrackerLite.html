@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HabitTracker Lite</title>
+<meta name="description" content="Offline habit tracker with streak counts and local storage.">
+<style>
+:root{
+  --bg:#f7f9fc; --panel:#fff; --border:#d9dde5;
+  --accent:#2f7df6; --radius:10px; --muted:#777; --success:#27ae60;
+}
+body{
+  background:var(--bg); font-family:sans-serif; margin:0; padding:1rem;
+  display:flex; flex-direction:column; align-items:center;
+}
+h1{margin:1rem 0}
+form{display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap}
+input,button{
+  padding:.5rem; border-radius:var(--radius); border:1px solid var(--border); font:inherit;
+}
+button{background:var(--accent); color:#fff; border:none; cursor:pointer}
+button.danger{background:#c0392b}
+.habit-list{display:grid; gap:.5rem; width:100%; max-width:600px}
+.habit{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  padding:.6rem; display:flex; justify-content:space-between; align-items:center;
+}
+.habit-info{display:flex; flex-direction:column}
+.habit-name{font-weight:bold}
+.habit-meta{font-size:.85rem; color:var(--muted)}
+.check-btn{
+  background:var(--success); border:none; color:#fff; padding:.4rem .7rem;
+  border-radius:var(--radius); cursor:pointer;
+}
+</style>
+</head>
+<body>
+<h1>HabitTracker Lite</h1>
+
+<form id="habitForm">
+  <input id="habitName" type="text" placeholder="New habit name" required>
+  <button type="submit">Add Habit</button>
+</form>
+
+<div class="habit-list" id="habitList"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'habit_tracker_data';
+  let habits = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+  const form = document.getElementById('habitForm');
+  const habitName = document.getElementById('habitName');
+  const habitList = document.getElementById('habitList');
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(habits));
+  }
+
+  function render(){
+    habitList.innerHTML = '';
+    const today = new Date().toISOString().slice(0,10);
+    habits.forEach((h,i)=>{
+      const div = document.createElement('div');
+      div.className = 'habit';
+      const info = document.createElement('div');
+      info.className = 'habit-info';
+      const name = document.createElement('div');
+      name.className = 'habit-name';
+      name.textContent = h.name;
+      const meta = document.createElement('div');
+      meta.className = 'habit-meta';
+      meta.textContent = `Streak: ${h.streak} day(s)`;
+      info.appendChild(name);
+      info.appendChild(meta);
+      const btn = document.createElement('button');
+      btn.className = 'check-btn';
+      btn.textContent = h.lastCheck === today ? 'Done ✓' : 'Mark Done';
+      btn.disabled = h.lastCheck === today;
+      btn.addEventListener('click', ()=>{
+        if(h.lastCheck !== today){
+          // if yesterday, increment streak, else reset to 1
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yStr = yesterday.toISOString().slice(0,10);
+          if(h.lastCheck === yStr){
+            h.streak++;
+          } else {
+            h.streak = 1;
+          }
+          h.lastCheck = today;
+          save();
+          render();
+        }
+      });
+      div.appendChild(info);
+      div.appendChild(btn);
+      habitList.appendChild(div);
+    });
+  }
+
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    habits.push({name:habitName.value.trim(), streak:0, lastCheck:''});
+    habitName.value = '';
+    save();
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
