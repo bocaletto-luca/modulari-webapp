@@ -1,0 +1,176 @@
+<!--
+  Application: EventSpot
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EventSpot — Modern Single‑Page Event Landing</title>
+<meta name="description" content="EventSpot is a modern, single‑file event landing page with countdown and schedule, offline‑ready under GPL v3 license by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="EventSpot — Modern Event Landing">
+<meta property="og:description" content="A responsive, offline, single‑file landing page for events, by Bocaletto Luca.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #f7f8fa;
+  --panel: #ffffff;
+  --muted: #5b6472;
+  --text: #141821;
+  --brand: #e84a5f;
+  --brand-dark: #c43b4f;
+  --radius: 10px;
+  --shadow: 0 4px 16px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0c10;
+    --panel: #1a1d27;
+    --muted: #9aa3b2;
+    --text: #e7e9ee;
+    --brand: #ff6b81;
+    --brand-dark: #e05a70;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: clamp(15px, 1.2vw, 16px)/1.5 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  padding: 1rem;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+main {
+  flex: 1;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+section {
+  margin-bottom: 2rem;
+}
+.countdown {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.time-box {
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-align: center;
+  min-width: 70px;
+}
+.time-box span {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.schedule {
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.schedule-item {
+  padding: .5rem 0;
+  border-bottom: 1px solid #ddd;
+}
+.schedule-item:last-child { border-bottom: none; }
+footer {
+  padding: 1rem;
+  text-align: center;
+  font-size: .9rem;
+  color: var(--muted);
+  background: var(--panel);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+@media (max-width: 500px) {
+  .countdown { gap: .5rem; }
+  .time-box { min-width: 60px; padding: .8rem; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>EventSpot</h1>
+  <p>Your ultimate single‑page event showcase</p>
+</header>
+<main>
+  <section>
+    <h2>Countdown to Event</h2>
+    <div class="countdown" id="countdown">
+      <div class="time-box"><span id="days">0</span>Days</div>
+      <div class="time-box"><span id="hours">0</span>Hours</div>
+      <div class="time-box"><span id="minutes">0</span>Minutes</div>
+      <div class="time-box"><span id="seconds">0</span>Seconds</div>
+    </div>
+  </section>
+  <section>
+    <h2>About</h2>
+    <p>EventSpot is designed to highlight your event with a modern look, complete schedule, and countdown, all in a single static file that runs anywhere Apache2 serves HTML.</p>
+  </section>
+  <section>
+    <h2>Schedule</h2>
+    <div class="schedule" id="scheduleList">
+      <div class="schedule-item"><strong>09:00</strong> — Registration</div>
+      <div class="schedule-item"><strong>10:00</strong> — Opening Keynote</div>
+      <div class="schedule-item"><strong>12:30</strong> — Lunch Break</div>
+      <div class="schedule-item"><strong>14:00</strong> — Workshops</div>
+      <div class="schedule-item"><strong>18:00</strong> — Closing Ceremony</div>
+    </div>
+  </section>
+  <section>
+    <h2>Location</h2>
+    <p>123 Example Street, Sample City</p>
+    <p>This event is fully offline‑ready. No tracking, no permissions, just pure HTML, CSS, and JavaScript.</p>
+  </section>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — EventSpot
+</footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+// Countdown
+const eventDate = new Date();
+eventDate.setDate(eventDate.getDate() + 10); // example: 10 days from now
+function updateCountdown() {
+  const now = new Date().getTime();
+  const distance = eventDate - now;
+  if (distance < 0) return;
+  const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+  document.getElementById('days').textContent = days;
+  document.getElementById('hours').textContent = hours;
+  document.getElementById('minutes').textContent = minutes;
+  document.getElementById('seconds').textContent = seconds;
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+</script>
+</body>
+</html>
