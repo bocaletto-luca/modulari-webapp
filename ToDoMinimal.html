@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To‑Do Minimal</title>
+<style>
+:root{
+  --bg:#f7f9fc; --panel:#fff; --border:#d9dde5; --accent:#2f7df6; --radius:10px;
+}
+body{
+  background:var(--bg); font-family:sans-serif; margin:0; padding:2rem;
+  display:flex; flex-direction:column; align-items:center;
+}
+h1{margin-bottom:1rem}
+form{display:flex; gap:.5rem; margin-bottom:1rem}
+input[type="text"]{
+  flex:1; padding:.6rem; border:1px solid var(--border); border-radius:var(--radius);
+}
+button{
+  background:var(--accent); color:#fff; border:none; padding:.6rem 1rem;
+  border-radius:var(--radius); cursor:pointer;
+}
+ul{list-style:none; padding:0; width:100%; max-width:400px}
+li{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  padding:.6rem; margin-bottom:.5rem; display:flex; justify-content:space-between; align-items:center;
+}
+li.done{text-decoration:line-through; color:gray}
+</style>
+</head>
+<body>
+<h1>To‑Do Minimal</h1>
+
+<form id="todoForm">
+  <input id="todoInput" type="text" placeholder="Aggiungi un compito..." required>
+  <button type="submit">Aggiungi</button>
+</form>
+
+<ul id="todoList"></ul>
+
+<script>
+(function(){
+  const form = document.getElementById('todoForm');
+  const input = document.getElementById('todoInput');
+  const list = document.getElementById('todoList');
+  const STORAGE_KEY = 'todo_minimal_items';
+
+  let todos = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  render();
+
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    todos.push({text:input.value.trim(), done:false});
+    input.value='';
+    save(); render();
+  });
+
+  function toggle(index){
+    todos[index].done = !todos[index].done;
+    save(); render();
+  }
+  function remove(index){
+    todos.splice(index,1);
+    save(); render();
+  }
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }
+  function render(){
+    list.innerHTML = todos.map((t,i)=>`
+      <li class="${t.done?'done':''}">
+        <span onclick="(${toggle})(${i})">${t.text}</span>
+        <button onclick="(${remove})(${i})">✕</button>
+      </li>
+    `).join('');
+  }
+  window.toggle = toggle;
+  window.remove = remove;
+})();
+</script>
+</body>
+</html>
