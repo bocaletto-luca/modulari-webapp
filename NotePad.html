@@ -1,0 +1,336 @@
+<!--
+  Application: NotePad
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NotePad — Minimal Offline Notes</title>
+<meta name="description" content="NotePad is a single-file, offline, responsive notes app with tagging, search, pinning, and sorting. GPL v3 by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="NotePad — Minimal Offline Notes">
+<meta property="og:description" content="Fast, distraction-free note taking with tags and search in one HTML file.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root{
+  --bg:#f7f8fb; --panel:#ffffff; --text:#141821; --muted:#6b7380;
+  --brand:#2e7dff; --brand-dark:#1f63d6; --radius:12px; --shadow:0 6px 18px rgba(0,0,0,.08);
+  --border:#e6e8ef; --chip:#eff3ff;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1117; --panel:#161b22; --text:#e6e9ef; --muted:#a5aab6;
+    --brand:#5892ff; --brand-dark:#2e7dff; --border:#242a34; --chip:#1e2740;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:clamp(15px,1.2vw,16px)/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+header{
+  background:var(--panel); box-shadow:var(--shadow); padding:1rem; text-align:center;
+}
+header h1{margin:0; font-size:clamp(1.6rem,4vw,2.1rem)}
+header p{margin:.25rem 0 0; color:var(--muted)}
+main{flex:1; max-width:1100px; margin:1rem auto 2rem; padding:0 1rem}
+.section{
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--radius); box-shadow:var(--shadow); padding:1rem; margin-bottom:1rem;
+}
+.controls{display:grid; gap:.75rem}
+.controls .row{display:grid; gap:.6rem}
+.controls input,.controls textarea,.controls button,.controls select{
+  font:inherit; padding:.6rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+@media (prefers-color-scheme: dark){
+  .controls input,.controls textarea,.controls button,.controls select{background:#1d2430; color:var(--text)}
+}
+.controls textarea{min-height:120px; resize:vertical}
+.controls button{background:var(--brand); color:#fff; border:none; cursor:pointer}
+.controls button:hover{background:var(--brand-dark)}
+.toolbar{
+  display:grid; gap:.6rem; grid-template-columns:1fr; margin-bottom:1rem;
+}
+.toolbar input,.toolbar select{
+  font:inherit; padding:.55rem .7rem; border:1px solid var(--border); border-radius:10px;
+}
+@media (min-width:780px){
+  .controls .row{grid-template-columns:1fr 1fr}
+  .toolbar{grid-template-columns:1fr 200px 200px}
+}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem}
+.card{
+  background:var(--panel); border:1px solid var(--border); border-radius:14px;
+  box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden;
+}
+.card .body{padding:.9rem 1rem}
+.card h3{margin:.1rem 0 .4rem; font-size:1.05rem}
+.meta{display:flex; gap:.5rem; flex-wrap:wrap; color:var(--muted); font-size:.9rem; margin-bottom:.5rem}
+.chips{display:flex; gap:.35rem; flex-wrap:wrap; margin:.35rem 0}
+.chip{padding:.15rem .5rem; background:var(--chip); color:var(--brand); border-radius:999px; font-size:.82rem; border:1px solid var(--border)}
+.actions{display:flex; gap:.5rem; margin-top:.6rem}
+.actions button{
+  flex:1; padding:.45rem .6rem; border-radius:10px; border:1px solid var(--border); background:transparent; cursor:pointer
+}
+.actions button:hover{background:rgba(0,0,0,.04)}
+@media (prefers-color-scheme: dark){
+  .actions button:hover{background:rgba(255,255,255,.06)}
+}
+footer{
+  background:var(--panel); border-top:1px solid var(--border);
+  color:var(--muted); text-align:center; font-size:.9rem; padding:1rem;
+}
+footer a{color:var(--brand); text-decoration:none}
+footer a:hover{text-decoration:underline}
+.small{font-size:.9rem; color:var(--muted)}
+.hidden{display:none !important}
+.editarea{min-height:100px; width:100%}
+</style>
+</head>
+<body>
+<header>
+  <h1>NotePad</h1>
+  <p>Fast, distraction-free note taking with tags and search</p>
+</header>
+
+<main>
+  <section class="section controls" aria-label="Create note">
+    <div class="row">
+      <input id="title" type="text" placeholder="Title" autocomplete="off">
+      <input id="tags" type="text" placeholder="Tags (comma separated)">
+    </div>
+    <div class="row">
+      <textarea id="content" placeholder="Write your note..."></textarea>
+      <button id="addBtn" type="button" aria-label="Add note">Add Note</button>
+    </div>
+  </section>
+
+  <section class="toolbar" aria-label="Filter and sort">
+    <input id="q" type="search" placeholder="Search title, content, or tag">
+    <select id="filterTag">
+      <option value="">All tags</option>
+    </select>
+    <select id="sort">
+      <option value="updated_desc">Sort: Recently updated</option>
+      <option value="updated_asc">Sort: Oldest updated</option>
+      <option value="title_asc">Sort: Title A→Z</option>
+      <option value="title_desc">Sort: Title Z→A</option>
+    </select>
+  </section>
+
+  <section id="list" class="grid" aria-live="polite"></section>
+</main>
+
+<footer>
+  © <span id="year"></span> Bocaletto Luca —
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> —
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — NotePad
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const listEl = $('#list');
+  const YEAR = $('#year'); YEAR.textContent = new Date().getFullYear();
+
+  const el = {
+    title: $('#title'),
+    tags: $('#tags'),
+    content: $('#content'),
+    addBtn: $('#addBtn'),
+    q: $('#q'),
+    filterTag: $('#filterTag'),
+    sort: $('#sort'),
+  };
+
+  const KEY = 'notepad_notes';
+  let notes = load().map(n => ({...n, createdAt: n.createdAt||Date.now(), updatedAt: n.updatedAt||Date.now(), pinned: !!n.pinned}));
+
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch { return []; } }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(notes)); }
+
+  function escapeHTML(str){
+    return (str||'').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+  }
+
+  function tagListToArray(s){
+    return (s||'')
+      .split(',').map(t=>t.trim()).filter(Boolean)
+      .map(t=>t.toLowerCase());
+  }
+
+  function uniqueTags(){
+    const set = new Set(notes.flatMap(n => n.tags||[]));
+    return Array.from(set).sort((a,b)=>a.localeCompare(b));
+  }
+
+  function renderFilterTags(){
+    const tags = uniqueTags();
+    el.filterTag.innerHTML = '<option value="">All tags</option>' + tags.map(t=>`<option>${escapeHTML(t)}</option>`).join('');
+  }
+
+  function summarize(text, max=160){
+    const s = (text||'').replace(/\s+/g,' ').trim();
+    return s.length>max ? s.slice(0,max-1)+'…' : s;
+  }
+
+  function applyFilters(arr){
+    const q = el.q.value.trim().toLowerCase();
+    const tag = el.filterTag.value;
+    let out = arr.filter(n => {
+      const hay = `${n.title} ${n.content} ${(n.tags||[]).join(' ')}`.toLowerCase();
+      const matchQ = q ? hay.includes(q) : true;
+      const matchT = tag ? (n.tags||[]).includes(tag) : true;
+      return matchQ && matchT;
+    });
+
+    switch(el.sort.value){
+      case 'updated_asc': out.sort((a,b)=>a.updatedAt-b.updatedAt); break;
+      case 'title_asc': out.sort((a,b)=>a.title.localeCompare(b.title)); break;
+      case 'title_desc': out.sort((a,b)=>b.title.localeCompare(a.title)); break;
+      default: out.sort((a,b)=>b.updatedAt-a.updatedAt);
+    }
+
+    // Pinned first
+    out.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+    return out;
+  }
+
+  function cardTemplate(n){
+    const tags = (n.tags||[]).map(t=>`<span class="chip">${escapeHTML(t)}</span>`).join('');
+    const updated = new Date(n.updatedAt).toLocaleString();
+    return `
+      <article class="card" data-id="${n.id}">
+        <div class="body">
+          <h3>${escapeHTML(n.title || 'Untitled')}</h3>
+          <div class="meta">
+            <span>${n.pinned ? '📌 Pinned' : 'Note'}</span>
+            <span>• Updated ${escapeHTML(updated)}</span>
+          </div>
+          <p class="small">${escapeHTML(summarize(n.content))}</p>
+          ${tags ? `<div class="chips">${tags}</div>` : ''}
+          <div class="actions">
+            <button data-action="edit">Edit</button>
+            <button data-action="pin">${n.pinned ? 'Unpin' : 'Pin'}</button>
+            <button data-action="delete">Delete</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function render(){
+    renderFilterTags();
+    const view = applyFilters(notes);
+    listEl.innerHTML = view.map(cardTemplate).join('') || '';
+    bindActions();
+  }
+
+  function bindActions(){
+    listEl.querySelectorAll('button[data-action]').forEach(btn=>{
+      btn.onclick = e=>{
+        const card = e.currentTarget.closest('.card');
+        const id = card.dataset.id;
+        const action = e.currentTarget.dataset.action;
+        if(action==='delete') handleDelete(id);
+        if(action==='pin') handlePin(id);
+        if(action==='edit') handleEdit(card, id);
+      };
+    });
+  }
+
+  function handleDelete(id){
+    const idx = notes.findIndex(n=>n.id===id);
+    if(idx>-1){
+      notes.splice(idx,1); save(); render();
+    }
+  }
+
+  function handlePin(id){
+    const n = notes.find(n=>n.id===id);
+    if(!n) return;
+    n.pinned = !n.pinned; n.updatedAt = Date.now();
+    save(); render();
+  }
+
+  function handleEdit(card, id){
+    const n = notes.find(n=>n.id===id);
+    if(!n) return;
+    const body = card.querySelector('.body');
+    body.innerHTML = `
+      <h3>Edit note</h3>
+      <div class="row" style="display:grid;gap:.5rem">
+        <input id="e_title" type="text" value="${escapeHTML(n.title)}" />
+        <input id="e_tags" type="text" value="${escapeHTML((n.tags||[]).join(', '))}" />
+        <textarea id="e_content" class="editarea">${escapeHTML(n.content)}</textarea>
+      </div>
+      <div class="actions" style="margin-top:.6rem">
+        <button data-act="save">Save</button>
+        <button data-act="cancel">Cancel</button>
+      </div>
+    `;
+    const get = sel => body.querySelector(sel);
+    get('button[data-act="save"]').onclick = ()=>{
+      n.title = get('#e_title').value.trim() || 'Untitled';
+      n.tags = tagListToArray(get('#e_tags').value);
+      n.content = get('#e_content').value.trim();
+      n.updatedAt = Date.now();
+      save(); render();
+    };
+    get('button[data-act="cancel"]').onclick = ()=> render();
+  }
+
+  function addNote(){
+    const title = el.title.value.trim() || 'Untitled';
+    const tags = tagListToArray(el.tags.value);
+    const content = el.content.value.trim();
+    if(!title && !content){ el.title.focus(); return; }
+    notes.push({
+      id: nanoid(),
+      title, tags, content, pinned:false,
+      createdAt: Date.now(), updatedAt: Date.now()
+    });
+    save();
+    clearForm();
+    render();
+  }
+
+  function clearForm(){
+    el.title.value=''; el.tags.value=''; el.content.value='';
+    el.title.focus();
+  }
+
+  function nanoid(){
+    if(crypto && crypto.getRandomValues){
+      const a = new Uint8Array(16); crypto.getRandomValues(a);
+      return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
+    }
+    return 'id-'+Math.random().toString(16).slice(2);
+  }
+
+  // Events
+  el.addBtn.addEventListener('click', addNote);
+  el.q.addEventListener('input', render);
+  el.filterTag.addEventListener('change', render);
+  el.sort.addEventListener('change', render);
+  ['title','tags','content'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown', e=>{
+      if(e.key==='Enter' && (id!=='content' || e.metaKey || e.ctrlKey)){
+        e.preventDefault(); addNote();
+      }
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
