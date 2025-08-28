@@ -1,1 +1,408 @@
-aa
+<!--
+  Application: ShopLite
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShopLite — Minimal Offline Store Demo</title>
+<meta name="description" content="ShopLite is a single-file, offline, responsive mini store with product catalog, filters, and a local cart. GPL v3 by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="ShopLite — Minimal Offline Store Demo">
+<meta property="og:description" content="Browse a sample catalog, filter, sort, and manage a cart — all in one HTML file.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root{
+  --bg:#f7f9fc; --panel:#ffffff; --text:#12151c; --muted:#6b7380;
+  --brand:#316eff; --brand-2:#00bfa5; --brand-dark:#2857cc;
+  --border:#e5e8f0; --radius:12px; --shadow:0 8px 24px rgba(0,0,0,.08);
+  --chip:#eff3ff; --danger:#d64545; --ok:#2e7d32;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1117; --panel:#161b22; --text:#e7e9ef; --muted:#a5aab6;
+    --brand:#6aa6ff; --brand-2:#26d7c3; --brand-dark:#4a8af0;
+    --border:#242a34; --chip:#1f2a44; --danger:#ff6b6b; --ok:#7bdc8a;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:clamp(15px,1.2vw,16px)/1.6 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  display:flex; flex-direction:column;
+}
+header{
+  background:var(--panel); box-shadow:var(--shadow); padding:1rem; text-align:center;
+}
+header h1{margin:0; font-size:clamp(1.6rem,4vw,2.1rem)}
+header p{margin:.3rem 0 0; color:var(--muted)}
+main{flex:1; max-width:1200px; margin:1rem auto 2rem; padding:0 1rem; width:100%}
+
+.toolbar{
+  display:grid; gap:.7rem; grid-template-columns:1fr 200px 200px 160px;
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:1rem; margin-bottom:1rem;
+}
+.toolbar input,.toolbar select,.toolbar button{
+  font:inherit; padding:.6rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+@media (prefers-color-scheme: dark){
+  .toolbar input,.toolbar select,.toolbar button{background:#1b2432; color:var(--text)}
+}
+.toolbar button{background:var(--brand); color:#fff; border:none; cursor:pointer}
+.toolbar button:hover{background:var(--brand-dark)}
+@media (max-width:900px){ .toolbar{grid-template-columns:1fr 1fr} }
+@media (max-width:560px){ .toolbar{grid-template-columns:1fr} }
+
+.grid{
+  display:grid; gap:1rem; grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+}
+
+.card{
+  background:var(--panel); border:1px solid var(--border); border-radius:14px;
+  box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;
+}
+.thumb{
+  width:100%; aspect-ratio:4/3; display:grid; place-items:center;
+  background:linear-gradient(135deg,#eef2ff,#f3f6ff);
+  color:var(--muted); font-weight:700; letter-spacing:.2px;
+}
+@media (prefers-color-scheme: dark){ .thumb{background:linear-gradient(135deg,#1a2030,#1f2a44)} }
+.badges{position:absolute; margin:.6rem; display:flex; gap:.4rem}
+.badge{
+  display:inline-flex; align-items:center; gap:.35rem; padding:.18rem .5rem;
+  border-radius:999px; font-size:.82rem; background:var(--chip); color:var(--brand);
+  border:1px solid var(--border);
+}
+.body{padding:.9rem 1rem; position:relative}
+.title{margin:.1rem 0 .4rem; font-size:1.05rem; font-weight:700}
+.meta{display:flex; gap:.6rem; flex-wrap:wrap; color:var(--muted); font-size:.9rem; margin-bottom:.5rem}
+.price{font-weight:800}
+.rating{color:#f2b01e}
+.actions{display:flex; gap:.6rem; margin-top:.7rem}
+.btn{
+  flex:1; padding:.5rem .7rem; border-radius:10px; border:1px solid var(--border);
+  background:transparent; cursor:pointer; font-weight:600;
+}
+.btn.primary{background:var(--brand); color:#fff; border:none}
+.btn.primary:hover{background:var(--brand-dark)}
+.btn.ghost:hover{background:rgba(0,0,0,.04)}
+@media (prefers-color-scheme: dark){ .btn.ghost:hover{background:rgba(255,255,255,.06)} }
+
+.flex{
+  display:flex; gap:1rem; align-items:flex-start;
+}
+@media (max-width:980px){ .flex{flex-direction:column} }
+
+.cart{
+  min-width:320px; background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--radius); box-shadow:var(--shadow); padding:1rem;
+  position:sticky; top:1rem; height:fit-content;
+}
+.cart h2{margin:.2rem 0 1rem; font-size:1.1rem}
+.cart-list{display:grid; gap:.6rem}
+.cart-item{
+  display:grid; grid-template-columns:1fr auto; gap:.4rem .6rem;
+  border:1px solid var(--border); border-radius:10px; padding:.5rem .6rem;
+}
+.cart-item .name{font-weight:600}
+.cart-item .qty{display:flex; gap:.3rem; align-items:center; justify-content:flex-end}
+.cart-item button{padding:.3rem .5rem; border-radius:8px; border:1px solid var(--border); background:transparent; cursor:pointer}
+.cart-item button:hover{background:rgba(0,0,0,.04)}
+@media (prefers-color-scheme: dark){ .cart-item button:hover{background:rgba(255,255,255,.06)} }
+.cart-summary{
+  border-top:1px solid var(--border); margin-top:.8rem; padding-top:.8rem; display:grid; gap:.3rem;
+}
+.cart .cta{display:flex; gap:.5rem; margin-top:.7rem}
+.cart .cta .clear{border-color:var(--danger); color:var(--danger)}
+.cart .cta .checkout{background:var(--brand-2); color:#fff; border:none}
+.cart .cta .checkout:hover{filter:brightness(.95)}
+
+footer{
+  background:var(--panel); border-top:1px solid var(--border); color:var(--muted);
+  text-align:center; font-size:.9rem; padding:1rem;
+}
+footer a{color:var(--brand); text-decoration:none}
+footer a:hover{text-decoration:underline}
+.small{font-size:.9rem; color:var(--muted)}
+.hidden{display:none !important}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>ShopLite</h1>
+  <p>Minimal offline store demo — filter, sort, and add to cart</p>
+</header>
+
+<main>
+  <section class="toolbar" aria-label="Catalog filters">
+    <input id="q" type="search" placeholder="Search products" aria-label="Search products">
+    <select id="filterCat" aria-label="Filter by category">
+      <option value="">All categories</option>
+    </select>
+    <select id="sort" aria-label="Sort products">
+      <option value="newest">Sort: Newest</option>
+      <option value="price_asc">Sort: Price ↑</option>
+      <option value="price_desc">Sort: Price ↓</option>
+      <option value="name_asc">Sort: Name A→Z</option>
+      <option value="name_desc">Sort: Name Z→A</option>
+      <option value="rating_desc">Sort: Rating ↓</option>
+    </select>
+    <button id="toggleCart" type="button" title="Toggle cart panel">Toggle Cart</button>
+  </section>
+
+  <div class="flex">
+    <section style="flex:1;min-width:0">
+      <div id="grid" class="grid" aria-live="polite"></div>
+    </section>
+
+    <aside id="cartPanel" class="cart" aria-label="Shopping cart">
+      <h2>Cart</h2>
+      <div id="cartList" class="cart-list"></div>
+      <div class="cart-summary">
+        <div><span class="small">Items:</span> <strong id="cartCount">0</strong></div>
+        <div><span class="small">Subtotal:</span> <strong id="cartSubtotal">€0.00</strong></div>
+      </div>
+      <div class="cta">
+        <button id="clearCart" class="btn ghost clear" type="button">Clear</button>
+        <button id="checkout" class="btn checkout" type="button">Checkout</button>
+      </div>
+      <div id="cartStatus" class="sr-only" aria-live="polite"></div>
+    </aside>
+  </div>
+</main>
+
+<footer>
+  © <span id="year"></span> Bocaletto Luca —
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> —
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — ShopLite
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  $('#year').textContent = new Date().getFullYear();
+
+  // Sample catalog (inline dataset, no external requests)
+  const catalog = [
+    {id:'A100', name:'Canvas Tote Bag', cat:'Accessories', price:19.90, rating:4.4, createdAt:Date.now()-86400e3*1},
+    {id:'A101', name:'Stainless Water Bottle', cat:'Accessories', price:14.50, rating:4.7, createdAt:Date.now()-86400e3*3},
+    {id:'A102', name:'Wireless Earbuds Case', cat:'Accessories', price:9.90, rating:4.1, createdAt:Date.now()-86400e3*6},
+    {id:'C200', name:'Classic T‑Shirt', cat:'Apparel', price:12.00, rating:4.3, createdAt:Date.now()-86400e3*2},
+    {id:'C201', name:'Hoodie Zip', cat:'Apparel', price:34.90, rating:4.8, createdAt:Date.now()-86400e3*10},
+    {id:'C202', name:'Sports Cap', cat:'Apparel', price:16.00, rating:4.2, createdAt:Date.now()-86400e3*4},
+    {id:'H300', name:'Ceramic Mug', cat:'Home', price:8.50, rating:4.5, createdAt:Date.now()-86400e3*5},
+    {id:'H301', name:'Desk Lamp', cat:'Home', price:24.90, rating:4.6, createdAt:Date.now()-86400e3*7},
+    {id:'H302', name:'Throw Pillow', cat:'Home', price:17.50, rating:4.0, createdAt:Date.now()-86400e3*8}
+  ];
+
+  const els = {
+    grid: $('#grid'),
+    q: $('#q'),
+    filterCat: $('#filterCat'),
+    sort: $('#sort'),
+    cartPanel: $('#cartPanel'),
+    toggleCart: $('#toggleCart'),
+    cartList: $('#cartList'),
+    cartCount: $('#cartCount'),
+    cartSubtotal: $('#cartSubtotal'),
+    clearCart: $('#clearCart'),
+    checkout: $('#checkout'),
+    cartStatus: $('#cartStatus')
+  };
+
+  // Initialize category filter
+  const cats = Array.from(new Set(catalog.map(p => p.cat))).sort((a,b)=>a.localeCompare(b));
+  els.filterCat.innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option>${escapeHTML(c)}</option>`).join('');
+
+  // Cart state from localStorage
+  const CART_KEY = 'shoplite_cart';
+  let cart = loadCart();
+
+  function loadCart(){
+    try { return JSON.parse(localStorage.getItem(CART_KEY)||'{}'); } catch { return {}; }
+  }
+  function saveCart(){
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  }
+
+  function currency(v){ return '€' + v.toFixed(2); }
+  function escapeHTML(str){ return (str||'').replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+
+  function placeholderFor(name){
+    const initials = name.split(' ').map(w=>w[0]).join('').slice(0,3).toUpperCase();
+    return `<div class="thumb"><div class="badges"><span class="badge">${escapeHTML(initials)}</span></div>${escapeHTML(name)}</div>`;
+  }
+
+  function ratingStars(r){
+    const full = Math.floor(r);
+    const half = r - full >= 0.5 ? 1 : 0;
+    return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - half);
+  }
+
+  function productCard(p){
+    return `
+      <article class="card" data-id="${p.id}">
+        ${placeholderFor(p.name)}
+        <div class="body">
+          <div class="meta">
+            <span class="badge">${escapeHTML(p.cat)}</span>
+            <span class="rating" title="${p.rating}/5">${ratingStars(p.rating)}</span>
+          </div>
+          <div class="title">${escapeHTML(p.name)}</div>
+          <div class="meta"><span class="price">${currency(p.price)}</span></div>
+          <div class="actions">
+            <button class="btn ghost" data-action="details">Details</button>
+            <button class="btn primary" data-action="add">Add to cart</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function applyFilters(items){
+    const q = els.q.value.trim().toLowerCase();
+    const cat = els.filterCat.value;
+    let out = items.filter(p => {
+      const matchQ = q ? (p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q)) : true;
+      const matchC = cat ? p.cat === cat : true;
+      return matchQ && matchC;
+    });
+    switch(els.sort.value){
+      case 'price_asc': out.sort((a,b)=>a.price-b.price); break;
+      case 'price_desc': out.sort((a,b)=>b.price-a.price); break;
+      case 'name_asc': out.sort((a,b)=>a.name.localeCompare(b.name)); break;
+      case 'name_desc': out.sort((a,b)=>b.name.localeCompare(a.name)); break;
+      case 'rating_desc': out.sort((a,b)=>b.rating-a.rating); break;
+      default: out.sort((a,b)=>b.createdAt-a.createdAt);
+    }
+    return out;
+  }
+
+  function renderCatalog(){
+    const view = applyFilters(catalog);
+    els.grid.innerHTML = view.map(productCard).join('') || '';
+    bindProductActions();
+  }
+
+  function bindProductActions(){
+    els.grid.querySelectorAll('article.card').forEach(card=>{
+      const id = card.dataset.id;
+      card.querySelectorAll('button[data-action]').forEach(btn=>{
+        btn.onclick = () => {
+          const action = btn.dataset.action;
+          if(action==='add') addToCart(id, 1);
+          if(action==='details') showDetails(id);
+        };
+      });
+    });
+  }
+
+  function showDetails(id){
+    const p = catalog.find(x=>x.id===id);
+    if(!p) return;
+    alert(`${p.name}\nCategory: ${p.cat}\nPrice: ${currency(p.price)}\nRating: ${p.rating}/5`);
+  }
+
+  function addToCart(id, qty){
+    const p = catalog.find(x=>x.id===id);
+    if(!p) return;
+    cart[id] = (cart[id]||0) + qty;
+    if(cart[id] < 1) delete cart[id];
+    saveCart();
+    renderCart();
+    pulseStatus(`${p.name} added to cart`);
+  }
+
+  function setQty(id, qty){
+    if(qty <= 0) delete cart[id];
+    else cart[id] = qty;
+    saveCart(); renderCart();
+  }
+
+  function removeItem(id){
+    delete cart[id];
+    saveCart(); renderCart();
+  }
+
+  function cartEntries(){
+    return Object.entries(cart).map(([id,qty])=>{
+      const p = catalog.find(x=>x.id===id);
+      return p ? { ...p, qty, total: p.price * qty } : null;
+    }).filter(Boolean);
+  }
+
+  function renderCart(){
+    const rows = cartEntries();
+    els.cartList.innerHTML = rows.map(r=>`
+      <div class="cart-item" data-id="${r.id}">
+        <div class="name">${escapeHTML(r.name)}</div>
+        <div class="price"><strong>${currency(r.total)}</strong></div>
+        <div class="small">${escapeHTML(r.cat)} • ${currency(r.price)} each</div>
+        <div class="qty">
+          <button data-act="dec" title="Decrease">−</button>
+          <span aria-label="Quantity">${r.qty}</span>
+          <button data-act="inc" title="Increase">+</button>
+          <button data-act="rm" title="Remove">Remove</button>
+        </div>
+      </div>
+    `).join('') || '<div class="small">Cart is empty</div>';
+
+    let count = 0, subtotal = 0;
+    rows.forEach(r=>{ count += r.qty; subtotal += r.total; });
+    els.cartCount.textContent = count;
+    els.cartSubtotal.textContent = currency(subtotal);
+
+    // bind qty actions
+    els.cartList.querySelectorAll('.cart-item').forEach(row=>{
+      const id = row.dataset.id;
+      row.querySelectorAll('button[data-act]').forEach(b=>{
+        b.onclick = () => {
+          const act = b.dataset.act;
+          const current = cart[id]||0;
+          if(act==='inc') setQty(id, current+1);
+          if(act==='dec') setQty(id, current-1);
+          if(act==='rm') removeItem(id);
+        };
+      });
+    });
+  }
+
+  function pulseStatus(msg){
+    els.cartStatus.textContent = msg;
+  }
+
+  // Events
+  els.q.addEventListener('input', renderCatalog);
+  els.filterCat.addEventListener('change', renderCatalog);
+  els.sort.addEventListener('change', renderCatalog);
+  els.clearCart.addEventListener('click', ()=>{
+    cart = {}; saveCart(); renderCart(); pulseStatus('Cart cleared');
+  });
+  els.checkout.addEventListener('click', ()=>{
+    const rows = cartEntries();
+    if(!rows.length){ alert('Cart is empty.'); return; }
+    const total = rows.reduce((s,r)=>s+r.total,0);
+    alert(`This is a demo checkout.\nItems: ${rows.length}\nTotal: ${currency(total)}\n\nNo payment is processed in this offline demo.`);
+  });
+  els.toggleCart.addEventListener('click', ()=>{
+    els.cartPanel.classList.toggle('hidden');
+  });
+
+  // Initial render
+  renderCatalog();
+  renderCart();
+})();
+</script>
+</body>
+</html>
+```
