@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Offline</title>
+<style>
+:root{
+  --bg:#f7f9fc; --panel:#fff; --border:#dadde5;
+  --accent:#2f7df6; --radius:10px; --success:#27ae60; --error:#c0392b;
+}
+body{
+  background:var(--bg); font-family:sans-serif; margin:0; padding:2rem;
+  display:flex; flex-direction:column; align-items:center;
+}
+h1{margin-bottom:1rem}
+.quiz-card{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:0 4px 12px rgba(0,0,0,.05);
+  padding:1rem; max-width:500px; width:100%; margin-bottom:1rem;
+}
+button{
+  display:block; width:100%; margin:.4rem 0; padding:.6rem;
+  border-radius:var(--radius); border:1px solid var(--border);
+  background:var(--panel); cursor:pointer; font:inherit;
+}
+button:hover{background:#f0f4ff}
+button.correct{background:var(--success); color:#fff}
+button.wrong{background:var(--error); color:#fff}
+#score{margin-top:1rem; font-weight:bold}
+</style>
+</head>
+<body>
+
+<h1>Quiz Offline</h1>
+<div class="quiz-card" id="quiz"></div>
+<div id="score"></div>
+
+<script>
+(function(){
+  const quizData = [
+    {q:"Qual è la capitale della Francia?",a:["Roma","Parigi","Madrid"],c:1},
+    {q:"In che anno è iniziato il nuovo millennio?",a:["2000","2001","1999"],c:1},
+    {q:"Qual è il pianeta più vicino al Sole?",a:["Venere","Mercurio","Marte"],c:1}
+  ];
+  let current = 0;
+  let score = 0;
+  const quizEl = document.getElementById('quiz');
+  const scoreEl = document.getElementById('score');
+
+  function renderQuestion(){
+    if(current >= quizData.length){
+      quizEl.innerHTML = `<h2>Finito!</h2><p>Punteggio: ${score}/${quizData.length}</p>`;
+      return;
+    }
+    const data = quizData[current];
+    quizEl.innerHTML = `<h2>${data.q}</h2>` +
+      data.a.map((opt,i)=>`<button onclick="checkAnswer(${i})">${opt}</button>`).join('');
+  }
+
+  window.checkAnswer = function(idx){
+    const buttons = quizEl.querySelectorAll('button');
+    buttons.forEach((btn,i)=>{
+      btn.disabled = true;
+      if(i===quizData[current].c) btn.classList.add('correct');
+      if(i!==quizData[current].c && i===idx) btn.classList.add('wrong');
+    });
+    if(idx === quizData[current].c) score++;
+    current++;
+    scoreEl.textContent = `Punteggio: ${score}/${quizData.length}`;
+    setTimeout(renderQuestion, 1200);
+  };
+
+  renderQuestion();
+})();
+</script>
+
+</body>
+</html>
