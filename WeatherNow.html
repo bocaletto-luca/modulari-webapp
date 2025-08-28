@@ -1,5 +1,5 @@
 <!--
-  Application: HabitTracker
+  Application: WeatherNow
   Author: Bocaletto Luca
   License: GPL v3
   Repository: https://github.com/bocaletto-luca/modulari-webapp
@@ -9,29 +9,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HabitTracker — Build Better Habits</title>
-<meta name="description" content="HabitTracker is a single-file, offline, responsive app to track daily habits and streaks. GPL v3 by Bocaletto Luca.">
+<title>WeatherNow — Simple Offline Weather Dashboard</title>
+<meta name="description" content="WeatherNow is a single-file, offline, responsive dashboard to log and view local weather snapshots with unit switching and sorting. GPL v3 by Bocaletto Luca.">
 <meta name="robots" content="index,follow">
-<meta property="og:title" content="HabitTracker — Build Better Habits">
-<meta property="og:description" content="Track your daily habits, mark completion and monitor streaks offline.">
+<meta property="og:title" content="WeatherNow — Simple Offline Weather Dashboard">
+<meta property="og:description" content="Track weather snapshots per city with temperature, condition, humidity, wind, and quick insights. Fully offline.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <style>
 :root{
-  --bg:#f9fafc; --panel:#fff; --text:#1d1f25; --muted:#6d727d;
-  --brand:#ff9800; --brand-dark:#e68900; --radius:12px; --shadow:0 6px 18px rgba(0,0,0,.08);
-  --border:#e6e8ef; --done:#c8e6c9;
+  --bg:#f5f8fc; --panel:#ffffff; --text:#141821; --muted:#6b7380;
+  --brand:#2e7dff; --brand-dark:#1f63d6; --radius:12px; --shadow:0 6px 18px rgba(0,0,0,.08);
+  --border:#e6e8ef; --chip:#eff3ff; --accent:#00bfa5;
 }
-@media(prefers-color-scheme:dark){
+@media (prefers-color-scheme: dark){
   :root{
-    --bg:#0e1016; --panel:#181b22; --text:#e6e9ef; --muted:#a5aab6;
-    --brand:#ffb74d; --brand-dark:#ff9800; --border:#2a2f3a;
+    --bg:#0e1117; --panel:#161b22; --text:#e6e9ef; --muted:#a5aab6;
+    --brand:#5892ff; --brand-dark:#2e7dff; --border:#242a34; --chip:#1e2740; --accent:#26d7c3;
   }
 }
 *{box-sizing:border-box}
 body{
   margin:0; background:var(--bg); color:var(--text);
-  font:clamp(15px,1.2vw,16px)/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  font:clamp(15px,1.2vw,16px)/1.55 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   min-height:100vh; display:flex; flex-direction:column;
 }
 header{
@@ -39,42 +39,60 @@ header{
 }
 header h1{margin:0; font-size:clamp(1.6rem,4vw,2.1rem)}
 header p{margin:.25rem 0 0; color:var(--muted)}
-main{flex:1; max-width:900px; margin:1rem auto 2rem; padding:0 1rem}
-.controls{
-  display:grid; gap:.75rem; background:var(--panel); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:1rem; margin-bottom:1rem; border:1px solid var(--border);
+main{flex:1; max-width:1100px; margin:1rem auto 2rem; padding:0 1rem}
+.section{
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--radius); box-shadow:var(--shadow); padding:1rem; margin-bottom:1rem;
 }
-.controls .row{display:grid; gap:.5rem}
-.controls input, .controls button{
-  font:inherit; padding:.6rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+.controls{display:grid; gap:.75rem}
+.controls .row{display:grid; gap:.6rem}
+.controls input,.controls select,.controls button{
+  font:inherit; padding:.6rem .7rem; border:1px solid var(--border);
+  border-radius:10px; background:#fff;
 }
-@media(prefers-color-scheme:dark){
-  .controls input, .controls button{background:#1d2230; color:var(--text)}
+@media (prefers-color-scheme: dark){
+  .controls input,.controls select,.controls button{background:#1d2430; color:var(--text)}
 }
-.controls button{
-  background:var(--brand); color:#fff; border:none; cursor:pointer;
-}
+.controls button{background:var(--brand); color:#fff; border:none; cursor:pointer}
 .controls button:hover{background:var(--brand-dark)}
-@media(min-width:640px){
-  .controls .row{grid-template-columns:1fr 150px}
+@media (min-width:860px){
+  .controls .row{grid-template-columns:1.2fr .7fr .7fr .7fr .8fr}
 }
-.list{
-  display:grid; gap:1rem;
+.toolbar{
+  display:grid; gap:.6rem; grid-template-columns:1fr 180px 200px 160px;
 }
-.habit{
-  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:.8rem .9rem; display:flex; flex-direction:column;
+@media (max-width:860px){
+  .toolbar{grid-template-columns:1fr}
 }
-.habit.done{background:var(--done)}
-.habit h3{margin:.1rem 0 .3rem; font-size:1.05rem}
-.habit .meta{font-size:.9rem; color:var(--muted)}
-.actions{margin-top:.5rem; display:flex; gap:.5rem}
+.grid{
+  display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+}
+.card{
+  background:var(--panel); border:1px solid var(--border); border-radius:14px;
+  box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden;
+}
+.card .body{padding:.9rem 1rem}
+.card h3{margin:.1rem 0 .4rem; font-size:1.05rem}
+.meta{display:flex; gap:.6rem; flex-wrap:wrap; color:var(--muted); font-size:.9rem; margin-bottom:.5rem}
+.badge{
+  display:inline-flex; align-items:center; gap:.4rem;
+  background:var(--chip); color:var(--brand); border:1px solid var(--border);
+  padding:.15rem .55rem; border-radius:999px; font-size:.85rem;
+}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:.25rem .6rem; font-size:.95rem}
+.kv div{padding:.05rem 0}
+.actions{display:flex; gap:.5rem; margin-top:.7rem}
 .actions button{
-  flex:1; padding:.4rem; border:1px solid var(--border); border-radius:8px; background:transparent; cursor:pointer;
+  flex:1; padding:.45rem .6rem; border-radius:10px; border:1px solid var(--border);
+  background:transparent; cursor:pointer;
 }
 .actions button:hover{background:rgba(0,0,0,.04)}
-@media(prefers-color-scheme:dark){
+@media (prefers-color-scheme: dark){
   .actions button:hover{background:rgba(255,255,255,.06)}
+}
+.unit-toggle{
+  justify-self:start; background:var(--accent); border:none; color:#fff; cursor:pointer;
+  padding:.55rem .8rem; border-radius:10px;
 }
 footer{
   background:var(--panel); border-top:1px solid var(--border); color:var(--muted);
@@ -82,76 +100,337 @@ footer{
 }
 footer a{color:var(--brand); text-decoration:none}
 footer a:hover{text-decoration:underline}
+.emoji{font-size:1.1rem}
+.small{font-size:.9rem; color:var(--muted)}
+.hidden{display:none !important}
 </style>
 </head>
 <body>
 <header>
-  <h1>HabitTracker</h1>
-  <p>Track and maintain your daily habits</p>
+  <h1>WeatherNow</h1>
+  <p>Log and view local weather snapshots — fully offline</p>
 </header>
+
 <main>
-  <section class="controls" aria-label="Add habit">
+  <section class="section controls" aria-label="Add weather snapshot">
     <div class="row">
-      <input type="text" id="habitName" placeholder="Habit name" required>
-      <button id="addBtn" type="button">Add Habit</button>
+      <input id="city" type="text" placeholder="City" autocomplete="off" required>
+      <input id="temp" type="number" step="0.1" placeholder="Temperature (°C)" required>
+      <select id="cond" aria-label="Condition">
+        <option>Sunny</option>
+        <option>Cloudy</option>
+        <option>Rain</option>
+        <option>Snow</option>
+        <option>Storm</option>
+        <option>Windy</option>
+        <option>Fog</option>
+      </select>
+      <input id="humidity" type="number" step="1" min="0" max="100" placeholder="Humidity (%)">
+      <input id="wind" type="number" step="0.1" min="0" placeholder="Wind (km/h)">
+    </div>
+    <div class="row" style="grid-template-columns:1fr auto;">
+      <select id="unitPref" aria-label="Unit preference">
+        <option value="C">Display in Celsius (°C)</option>
+        <option value="F">Display in Fahrenheit (°F)</option>
+      </select>
+      <button id="addBtn" type="button" aria-label="Add snapshot">Add Snapshot</button>
     </div>
   </section>
-  <section id="habitList" class="list" aria-live="polite"></section>
+
+  <section class="section toolbar" aria-label="Filter and sort">
+    <input id="q" type="search" placeholder="Search city">
+    <select id="filterCond">
+      <option value="">All conditions</option>
+      <option>Sunny</option><option>Cloudy</option><option>Rain</option>
+      <option>Snow</option><option>Storm</option><option>Windy</option><option>Fog</option>
+    </select>
+    <select id="sort">
+      <option value="updated_desc">Sort: Recently updated</option>
+      <option value="updated_asc">Sort: Oldest updated</option>
+      <option value="city_asc">Sort: City A→Z</option>
+      <option value="city_desc">Sort: City Z→A</option>
+      <option value="temp_desc">Sort: Temp ↓</option>
+      <option value="temp_asc">Sort: Temp ↑</option>
+    </select>
+    <button id="toggleUnit" class="unit-toggle" type="button">Switch Unit</button>
+  </section>
+
+  <section id="cards" class="grid" aria-live="polite"></section>
 </main>
+
 <footer>
-  © <span id="year"></span> Bocaletto Luca — 
-  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
-  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — HabitTracker
+  © <span id="year"></span> Bocaletto Luca —
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> —
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — WeatherNow
 </footer>
+
 <script>
 (function(){
-  const $=s=>document.querySelector(s);
-  const KEY='habittracker_items';
-  $('#year').textContent=new Date().getFullYear();
-  const els={habitName:$('#habitName'),addBtn:$('#addBtn'),habitList:$('#habitList')};
-  let habits=JSON.parse(localStorage.getItem(KEY)||'[]');
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const year = $('#year'); year.textContent = new Date().getFullYear();
 
-  function save(){localStorage.setItem(KEY,JSON.stringify(habits));}
-  function escapeHTML(str){return(str||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+  const STORAGE_KEY = 'weathernow_cities';
+  const PREF_KEY = 'weathernow_prefs';
 
-  function render(){
-    els.habitList.innerHTML='';
-    habits.forEach((h,i)=>{
-      const div=document.createElement('div');
-      div.className='habit'+(h.done?' done':'');
-      div.innerHTML=`<h3>${escapeHTML(h.name)}</h3>
-        <div class="meta">Streak: ${h.streak} days</div>
-        <div class="actions">
-          <button data-action="toggle">${h.done?'Mark Undone':'Mark Done'}</button>
-          <button data-action="delete">Delete</button>
-        </div>`;
-      div.querySelectorAll('button').forEach(btn=>{
-        btn.onclick=()=>{
-          if(btn.dataset.action==='delete'){habits.splice(i,1);}
-          if(btn.dataset.action==='toggle'){
-            if(h.done){ h.done=false; h.streak=0; }
-            else { h.done=true; h.streak+=1; }
-          }
-          save();render();
-        };
-      });
-      els.habitList.appendChild(div);
-    });
+  const ui = {
+    city: $('#city'),
+    temp: $('#temp'),
+    cond: $('#cond'),
+    humidity: $('#humidity'),
+    wind: $('#wind'),
+    unitPref: $('#unitPref'),
+    addBtn: $('#addBtn'),
+    q: $('#q'),
+    filterCond: $('#filterCond'),
+    sort: $('#sort'),
+    toggleUnit: $('#toggleUnit'),
+    cards: $('#cards')
+  };
+
+  let cities = loadCities();
+  let pref = loadPref();
+
+  ui.unitPref.value = pref.unit || 'C';
+
+  function loadCities(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); } catch { return []; }
+  }
+  function saveCities(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cities));
+  }
+  function loadPref(){
+    try { return JSON.parse(localStorage.getItem(PREF_KEY)||'{}'); } catch { return {}; }
+  }
+  function savePref(){
+    localStorage.setItem(PREF_KEY, JSON.stringify(pref));
   }
 
-  function addHabit(){
-    const name=els.habitName.value.trim();
-    if(!name) return;
-    habits.push({name,done:false,streak:0});
-    save();
-    els.habitName.value='';
-    els.habitName.focus();
+  function escapeHTML(str){
+    return (str||'').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  function toF(c){ return (c * 9/5) + 32; }
+  function toC(f){ return (f - 32) * 5/9; }
+
+  function iconFor(cond){
+    const map = {
+      'Sunny':'☀️','Cloudy':'☁️','Rain':'🌧️','Snow':'❄️','Storm':'⛈️','Windy':'💨','Fog':'🌫️'
+    };
+    return map[cond] || '🌡️';
+  }
+
+  function feelsLikeC(tC, windKph, hum){
+    let fl = tC;
+    if (tC <= 10 && windKph >= 4.8) {
+      const v = windKph;
+      fl = 13.12 + 0.6215*tC - 11.37*Math.pow(v,0.16) + 0.3965*tC*Math.pow(v,0.16);
+    } else if (tC >= 27 && hum >= 40) {
+      // simple adjustment towards heat index (approximate)
+      fl = tC + (hum/100)*2.5;
+    }
+    return fl;
+  }
+
+  function addSnapshot(){
+    const name = ui.city.value.trim();
+    const t = parseFloat(ui.temp.value);
+    if (!name || Number.isNaN(t)) { ui.city.focus(); return; }
+    const cond = ui.cond.value;
+    const hum = parseFloat(ui.humidity.value) || 0;
+    const wind = parseFloat(ui.wind.value) || 0;
+
+    // Store temperature normalized as Celsius
+    const tempC = (ui.unitPref.value === 'F') ? toC(t) : t;
+    const item = {
+      id: nanoid(),
+      city: name,
+      tempC: round1(tempC),
+      cond,
+      humidity: clamp(hum,0,100),
+      windKph: Math.max(0, wind),
+      pinned: false,
+      updatedAt: Date.now()
+    };
+
+    // Upsert by city name (case-insensitive)
+    const idx = cities.findIndex(c => c.city.toLowerCase() === name.toLowerCase());
+    if (idx >= 0) cities[idx] = {...item, id: cities[idx].id};
+    else cities.push(item);
+
+    saveCities();
+    clearForm();
     render();
   }
 
-  els.addBtn.onclick=addHabit;
-  els.habitName.addEventListener('keydown',e=>{
-    if(e.key==='Enter'){e.preventDefault();addHabit();}
+  function round1(x){ return Math.round(x*10)/10; }
+  function clamp(x,min,max){ return Math.max(min, Math.min(max,x)); }
+
+  function clearForm(){
+    ui.city.value=''; ui.temp.value=''; ui.humidity.value=''; ui.wind.value='';
+    ui.city.focus();
+  }
+
+  function unitSymbol(){ return (pref.unit||'C') === 'C' ? '°C' : '°F'; }
+  function displayTemp(tempC){
+    return (pref.unit||'C') === 'C' ? `${round1(tempC)}°C` : `${round1(toF(tempC))}°F`;
+  }
+
+  function quickInsight(c){
+    const t = c.tempC, hum = c.humidity, wind = c.windKph;
+    const fl = feelsLikeC(t, wind, hum);
+    const disp = (pref.unit||'C') === 'C' ? `${round1(fl)}°C` : `${round1(toF(fl))}°F`;
+    if (c.cond === 'Rain') return `Carry an umbrella. Feels like ${disp}.`;
+    if (c.cond === 'Snow') return `Dress warm and watch for ice. Feels like ${disp}.`;
+    if (c.cond === 'Storm') return `Stay cautious: thunderstorms possible. Feels like ${disp}.`;
+    if (c.cond === 'Sunny' && t > 28) return `Stay hydrated and use sunscreen. Feels like ${disp}.`;
+    if (c.cond === 'Windy' && wind > 25) return `Strong winds outside. Feels like ${disp}.`;
+    return `Feels like ${disp}.`;
+  }
+
+  function cardTemplate(c){
+    const updated = new Date(c.updatedAt).toLocaleString();
+    const fav = c.pinned ? '★' : '☆';
+    return `
+      <article class="card" data-id="${c.id}">
+        <div class="body">
+          <div class="meta">
+            <span class="badge"><span class="emoji">${iconFor(c.cond)}</span><span>${escapeHTML(c.cond)}</span></span>
+            <span class="small">Updated ${escapeHTML(updated)}</span>
+            ${c.pinned ? '<span class="badge" title="Pinned">Pinned</span>' : ''}
+          </div>
+          <h3>${escapeHTML(c.city)}</h3>
+          <div class="kv">
+            <div>Temperature</div><div><strong>${displayTemp(c.tempC)}</strong></div>
+            <div>Humidity</div><div>${c.humidity}%</div>
+            <div>Wind</div><div>${c.windKph} km/h</div>
+          </div>
+          <p class="small" style="margin-top:.5rem">${escapeHTML(quickInsight(c))}</p>
+          <div class="actions">
+            <button data-action="pin">${fav} Pin</button>
+            <button data-action="edit">Edit</button>
+            <button data-action="delete">Delete</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function applyFilters(list){
+    const q = ui.q.value.trim().toLowerCase();
+    const fc = ui.filterCond.value;
+    let out = list.filter(c => {
+      const matchQ = q ? c.city.toLowerCase().includes(q) : true;
+      const matchC = fc ? c.cond === fc : true;
+      return matchQ && matchC;
+    });
+    switch(ui.sort.value){
+      case 'updated_asc': out.sort((a,b)=>a.updatedAt-b.updatedAt); break;
+      case 'city_asc': out.sort((a,b)=>a.city.localeCompare(b.city)); break;
+      case 'city_desc': out.sort((a,b)=>b.city.localeCompare(a.city)); break;
+      case 'temp_desc': out.sort((a,b)=>b.tempC-a.tempC); break;
+      case 'temp_asc': out.sort((a,b)=>a.tempC-b.tempC); break;
+      default: out.sort((a,b)=>b.updatedAt-a.updatedAt);
+    }
+    // Pinned first
+    out.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+    return out;
+  }
+
+  function render(){
+    const view = applyFilters(cities);
+    ui.cards.innerHTML = view.map(cardTemplate).join('') || '';
+    bindCardActions();
+  }
+
+  function bindCardActions(){
+    ui.cards.querySelectorAll('button[data-action]').forEach(btn=>{
+      btn.onclick = e => {
+        const card = e.currentTarget.closest('.card');
+        const id = card.dataset.id;
+        const action = e.currentTarget.dataset.action;
+        if(action==='delete') handleDelete(id);
+        if(action==='pin') handlePin(id);
+        if(action==='edit') handleEdit(card, id);
+      };
+    });
+  }
+
+  function handleDelete(id){
+    const idx = cities.findIndex(c=>c.id===id);
+    if(idx>-1){ cities.splice(idx,1); saveCities(); render(); }
+  }
+
+  function handlePin(id){
+    const c = cities.find(x=>x.id===id);
+    if(!c) return;
+    c.pinned = !c.pinned; c.updatedAt = Date.now();
+    saveCities(); render();
+  }
+
+  function handleEdit(card, id){
+    const c = cities.find(x=>x.id===id);
+    if(!c) return;
+    const body = card.querySelector('.body');
+    body.innerHTML = `
+      <h3>Edit ${escapeHTML(c.city)}</h3>
+      <div class="controls" style="padding:0;border:none;box-shadow:none;margin:0">
+        <div class="row" style="grid-template-columns:1fr .6fr .8fr .6fr .6fr">
+          <input id="e_city" type="text" value="${escapeHTML(c.city)}">
+          <input id="e_temp" type="number" step="0.1" value="${(pref.unit||'C')==='C' ? c.tempC : round1(toF(c.tempC))}">
+          <select id="e_cond">
+            ${['Sunny','Cloudy','Rain','Snow','Storm','Windy','Fog'].map(v=>`<option ${v===c.cond?'selected':''}>${v}</option>`).join('')}
+          </select>
+          <input id="e_hum" type="number" min="0" max="100" step="1" value="${c.humidity}">
+          <input id="e_wind" type="number" min="0" step="0.1" value="${c.windKph}">
+        </div>
+        <div class="row" style="grid-template-columns:auto auto; justify-content:flex-start">
+          <button data-act="save">Save</button>
+          <button data-act="cancel">Cancel</button>
+        </div>
+      </div>
+    `;
+    const get = sel => body.querySelector(sel);
+    get('button[data-act="save"]').onclick = ()=>{
+      const city = get('#e_city').value.trim() || c.city;
+      const tempInput = parseFloat(get('#e_temp').value);
+      const tempC = (pref.unit||'C')==='C' ? tempInput : toC(tempInput);
+      const cond = get('#e_cond').value;
+      const hum = clamp(parseFloat(get('#e_hum').value)||0, 0, 100);
+      const wind = Math.max(0, parseFloat(get('#e_wind').value)||0);
+      c.city = city; c.tempC = round1(tempC); c.cond = cond; c.humidity = hum; c.windKph = wind; c.updatedAt = Date.now();
+      saveCities(); render();
+    };
+    get('button[data-act="cancel"]').onclick = ()=> render();
+  }
+
+  function nanoid(){
+    if (crypto && crypto.getRandomValues){
+      const a = new Uint8Array(12); crypto.getRandomValues(a);
+      return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
+    }
+    return 'id-'+Math.random().toString(16).slice(2);
+  }
+
+  // Events
+  ui.addBtn.addEventListener('click', addSnapshot);
+  ['city','temp','humidity','wind'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault(); addSnapshot(); }
+    });
+  });
+  ui.q.addEventListener('input', render);
+  ui.filterCond.addEventListener('change', render);
+  ui.sort.addEventListener('change', render);
+  ui.unitPref.addEventListener('change', ()=>{
+    pref.unit = ui.unitPref.value;
+    savePref();
+    render();
+  });
+  ui.toggleUnit.addEventListener('click', ()=>{
+    pref.unit = (pref.unit||'C') === 'C' ? 'F' : 'C';
+    ui.unitPref.value = pref.unit;
+    savePref(); render();
   });
 
   render();
