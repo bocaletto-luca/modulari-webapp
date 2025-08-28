@@ -1,0 +1,172 @@
+<!--
+  Application: TravelJournal
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TravelJournal — Capture Your Adventures</title>
+<meta name="description" content="TravelJournal is a responsive, offline, single-file travel diary to log and view your journeys. GPL v3 license by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="TravelJournal — Capture Your Adventures">
+<meta property="og:description" content="An all-in-one HTML page for travel notes and memories.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #f4f9f9;
+  --panel: #fff;
+  --text: #2c2c2c;
+  --muted: #666;
+  --brand: #00b8a9;
+  --brand-dark: #009688;
+  --radius: 10px;
+  --shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101515;
+    --panel: #1a1e1e;
+    --text: #eaeaea;
+    --muted: #aaa;
+    --brand: #26d7c3;
+    --brand-dark: #00b8a9;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: clamp(15px,1.2vw,16px)/1.5 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  padding: 1rem;
+  background: var(--panel);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+header h1 { margin: 0; font-size: clamp(1.5rem,4vw,2rem); }
+main {
+  flex: 1;
+  max-width: 900px;
+  margin: 1rem auto;
+  padding: 0 1rem;
+}
+form {
+  display: grid;
+  gap: 0.5rem;
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+form input, form textarea, form button {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+form button {
+  background: var(--brand);
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+form button:hover {
+  background: var(--brand-dark);
+}
+.entry-list {
+  display: grid;
+  gap: 1rem;
+}
+.entry {
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.entry h3 { margin-top: 0; }
+.entry p { margin: .3rem 0; }
+footer {
+  padding: 1rem;
+  text-align: center;
+  font-size: .9rem;
+  color: var(--muted);
+  background: var(--panel);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TravelJournal</h1>
+  <p>Log your adventures and memories</p>
+</header>
+<main>
+  <form id="entryForm">
+    <input type="text" id="location" placeholder="Location" required>
+    <input type="date" id="date" required>
+    <textarea id="notes" placeholder="Trip notes" rows="4" required></textarea>
+    <button type="submit">Add Entry</button>
+  </form>
+  <div class="entry-list" id="entryList"></div>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — TravelJournal
+</footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+const form = document.getElementById('entryForm');
+const list = document.getElementById('entryList');
+let entries = JSON.parse(localStorage.getItem('traveljournal_entries') || '[]');
+
+function renderEntries(){
+  list.innerHTML = '';
+  entries.forEach((e, i) => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <h3>${e.location} <small>(${e.date})</small></h3>
+      <p>${e.notes}</p>
+      <button data-index="${i}">Delete</button>
+    `;
+    div.querySelector('button').onclick = () => {
+      entries.splice(i,1);
+      save();
+    };
+    list.appendChild(div);
+  });
+}
+
+function save(){
+  localStorage.setItem('traveljournal_entries', JSON.stringify(entries));
+  renderEntries();
+}
+
+form.onsubmit = ev => {
+  ev.preventDefault();
+  entries.push({
+    location: form.location.value.trim(),
+    date: form.date.value,
+    notes: form.notes.value.trim()
+  });
+  form.reset();
+  save();
+};
+
+renderEntries();
+</script>
+</body>
+</html>
