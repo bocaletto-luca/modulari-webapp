@@ -1,0 +1,167 @@
+<!--
+  Application: TaskBoard
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TaskBoard — Organize Your Tasks</title>
+<meta name="description" content="TaskBoard is a single-file, offline, responsive task manager with status columns and priorities. GPL v3 by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="TaskBoard — Organize Your Tasks">
+<meta property="og:description" content="Kanban-style board to manage tasks locally in one HTML file.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root{
+  --bg:#f9fafc; --panel:#fff; --text:#1d1f25; --muted:#6d727d;
+  --brand:#00bfa5; --brand-dark:#009e88; --radius:12px; --shadow:0 6px 18px rgba(0,0,0,.08);
+  --border:#e6e8ef; --todo:#ff7043; --doing:#ffca28; --done:#66bb6a;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1016; --panel:#181b22; --text:#e6e9ef; --muted:#a5aab6;
+    --brand:#26d7c3; --brand-dark:#00bfa5; --border:#2a2f3a;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:clamp(15px,1.2vw,16px)/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+header{
+  background:var(--panel); box-shadow:var(--shadow); padding:1rem; text-align:center;
+}
+header h1{margin:0; font-size:clamp(1.6rem,4vw,2.1rem)}
+header p{margin:.25rem 0 0; color:var(--muted)}
+main{
+  flex:1; max-width:1200px; margin:1rem auto 2rem; padding:0 1rem; overflow-x:auto;
+}
+.controls{
+  display:grid; gap:.75rem; background:var(--panel); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:1rem; margin-bottom:1rem; border:1px solid var(--border);
+}
+.controls .row{display:grid; gap:.5rem}
+.controls input, .controls select, .controls button{
+  font:inherit; padding:.6rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+@media(prefers-color-scheme:dark){
+  .controls input, .controls select, .controls button{background:#1d2230; color:var(--text)}
+}
+.controls button{
+  background:var(--brand); color:#fff; border:none; cursor:pointer;
+}
+.controls button:hover{background:var(--brand-dark)}
+@media(min-width:720px){
+  .controls .row{grid-template-columns:1fr 1fr 150px}
+}
+.board{
+  display:grid; grid-template-columns:repeat(3, minmax(280px,1fr)); gap:1rem;
+}
+.column{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); display:flex; flex-direction:column;
+}
+.column h2{
+  margin:0; padding:.7rem 1rem; border-bottom:1px solid var(--border); font-size:1.05rem;
+}
+.tasks{flex:1; padding:1rem; display:flex; flex-direction:column; gap:.5rem}
+.task{
+  background:var(--panel); border:1px solid var(--border); border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,.04); padding:.6rem .7rem;
+}
+.task h3{margin:.1rem 0; font-size:1rem}
+.task p{margin:.3rem 0; font-size:.9rem; color:var(--muted)}
+.task .actions{display:flex; gap:.3rem; margin-top:.4rem}
+.task .actions button{
+  flex:1; font-size:.85rem; padding:.3rem .5rem; border:1px solid var(--border);
+  border-radius:6px; background:transparent; cursor:pointer;
+}
+.task .actions button:hover{background:rgba(0,0,0,.04)}
+@media(prefers-color-scheme:dark){
+  .task .actions button:hover{background:rgba(255,255,255,.06)}
+}
+footer{
+  background:var(--panel); border-top:1px solid var(--border); color:var(--muted);
+  text-align:center; font-size:.9rem; padding:1rem;
+}
+footer a{color:var(--brand); text-decoration:none}
+footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <h1>TaskBoard</h1>
+  <p>Kanban-style board to manage tasks locally</p>
+</header>
+<main>
+  <section class="controls" aria-label="Add task">
+    <div class="row">
+      <input type="text" id="title" placeholder="Task title" required>
+      <select id="status" required>
+        <option value="">Select status</option>
+        <option value="todo">To Do</option>
+        <option value="doing">Doing</option>
+        <option value="done">Done</option>
+      </select>
+      <button id="addBtn" type="button">Add Task</button>
+    </div>
+    <input type="text" id="desc" placeholder="Description (optional)">
+  </section>
+  <section class="board">
+    <div class="column" data-status="todo">
+      <h2>To Do</h2>
+      <div class="tasks" id="todo"></div>
+    </div>
+    <div class="column" data-status="doing">
+      <h2>Doing</h2>
+      <div class="tasks" id="doing"></div>
+    </div>
+    <div class="column" data-status="done">
+      <h2>Done</h2>
+      <div class="tasks" id="done"></div>
+    </div>
+  </section>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — TaskBoard
+</footer>
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const KEY='taskboard_tasks';
+  const year=$('#year');year.textContent=new Date().getFullYear();
+  const els={title:$('#title'),status:$('#status'),desc:$('#desc'),addBtn:$('#addBtn'),todo:$('#todo'),doing:$('#doing'),done:$('#done')};
+  let tasks=JSON.parse(localStorage.getItem(KEY)||'[]');
+
+  function save(){localStorage.setItem(KEY,JSON.stringify(tasks));}
+  function escapeHTML(str){return(str||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+
+  function render(){
+    ['todo','doing','done'].forEach(status=>{
+      els[status].innerHTML='';
+      tasks.filter(t=>t.status===status).forEach((t,i)=>{
+        const div=document.createElement('div');
+        div.className='task';
+        div.innerHTML=`<h3>${escapeHTML(t.title)}</h3>${t.desc?`<p>${escapeHTML(t.desc)}`:''}
+          <div class="actions">
+            ${status!=='done'?'<button data-action="next">Next</button>':''}
+            <button data-action="delete">Delete</button>
+          </div>`;
+        div.querySelectorAll('button').forEach(btn=>{
+          btn.onclick=()=>{
+            if(btn.dataset.action==='delete'){tasks.splice(tasks.indexOf(t),1);}
+            if(btn.dataset.action==='next'){
+              if(t.status==='todo') t.status='doing'; else if(t.status==='doing') t.status='done';
+            }
+            save();render();
+          };
+        });
+        els[status].appendChild(div);
