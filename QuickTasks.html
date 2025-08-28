@@ -1,0 +1,213 @@
+<!--
+  Application: QuickTasks
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QuickTasks — Simple Offline Task Manager</title>
+  <meta name="description" content="QuickTasks is a simple, offline, single-page task manager that runs natively on Apache2 without dependencies.">
+  <meta name="robots" content="index,follow">
+  <meta property="og:title" content="QuickTasks — Simple Offline Task Manager">
+  <meta property="og:description" content="QuickTasks is a single-file, offline-ready to-do list application under GPL v3 license by Bocaletto Luca.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --muted: #5b6472;
+      --text: #141821;
+      --brand: #316eff;
+      --brand-dark: #2857cc;
+      --danger: #d64545;
+      --radius: 10px;
+      --shadow: 0 4px 16px rgba(0,0,0,.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0c10;
+        --panel: #1a1d27;
+        --muted: #9aa3b2;
+        --text: #e7e9ee;
+        --brand: #6aa6ff;
+        --brand-dark: #4a8af0;
+        --danger: #ff6b6b;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.5 system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 1rem;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    main {
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    form {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: 1rem;
+    }
+    input[type=text] {
+      flex: 1;
+      padding: .6rem .8rem;
+      border-radius: var(--radius);
+      border: 1px solid #ccc;
+      background: var(--panel);
+      color: var(--text);
+    }
+    button {
+      padding: .6rem 1rem;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--brand);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: var(--brand-dark); }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      background: var(--panel);
+      padding: .6rem .8rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: .5rem;
+    }
+    li.done span {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+    .actions {
+      display: flex;
+      gap: .4rem;
+    }
+    .actions button {
+      background: transparent;
+      color: var(--brand);
+      padding: .3rem .5rem;
+    }
+    .actions button.delete {
+      color: var(--danger);
+    }
+    footer {
+      margin-top: 3rem;
+      padding: 1rem;
+      text-align: center;
+      font-size: .9rem;
+      color: var(--muted);
+      background: var(--panel);
+    }
+    footer a {
+      color: var(--brand);
+      text-decoration: none;
+    }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>QuickTasks</h1>
+  </header>
+  <main>
+    <form id="taskForm">
+      <input type="text" id="taskInput" placeholder="Enter a new task" required>
+      <button type="submit">Add</button>
+    </form>
+    <ul id="taskList"></ul>
+  </main>
+  <footer>
+    © <span id="year"></span> Bocaletto Luca — 
+    <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+    <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — QuickTasks
+  </footer>
+  <script>
+    const form = document.getElementById('taskForm');
+    const input = document.getElementById('taskInput');
+    const list = document.getElementById('taskList');
+    const storageKey = 'quicktasks_tasks';
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    function loadTasks() {
+      const tasks = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      list.innerHTML = '';
+      tasks.forEach((t, i) => {
+        const li = document.createElement('li');
+        if (t.done) li.classList.add('done');
+        const span = document.createElement('span');
+        span.textContent = t.text;
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = t.done ? 'Undo' : 'Done';
+        toggleBtn.addEventListener('click', () => toggleTask(i));
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.className = 'delete';
+        delBtn.addEventListener('click', () => deleteTask(i));
+        actions.appendChild(toggleBtn);
+        actions.appendChild(delBtn);
+        li.appendChild(span);
+        li.appendChild(actions);
+        list.appendChild(li);
+      });
+    }
+
+    function saveTasks(tasks) {
+      localStorage.setItem(storageKey, JSON.stringify(tasks));
+      loadTasks();
+    }
+
+    function addTask(text) {
+      const tasks = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      tasks.push({ text, done: false });
+      saveTasks(tasks);
+    }
+
+    function toggleTask(index) {
+      const tasks = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      tasks[index].done = !tasks[index].done;
+      saveTasks(tasks);
+    }
+
+    function deleteTask(index) {
+      const tasks = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      tasks.splice(index, 1);
+      saveTasks(tasks);
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (text) addTask(text);
+      input.value = '';
+    });
+
+    loadTasks();
+  </script>
+</body>
+</html>
