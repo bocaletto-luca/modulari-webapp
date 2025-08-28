@@ -1,0 +1,161 @@
+<!--
+  Application: HabitTracker
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HabitTracker — Build Better Habits</title>
+<meta name="description" content="HabitTracker is a single-file, offline, responsive app to track daily habits and streaks. GPL v3 by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="HabitTracker — Build Better Habits">
+<meta property="og:description" content="Track your daily habits, mark completion and monitor streaks offline.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root{
+  --bg:#f9fafc; --panel:#fff; --text:#1d1f25; --muted:#6d727d;
+  --brand:#ff9800; --brand-dark:#e68900; --radius:12px; --shadow:0 6px 18px rgba(0,0,0,.08);
+  --border:#e6e8ef; --done:#c8e6c9;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1016; --panel:#181b22; --text:#e6e9ef; --muted:#a5aab6;
+    --brand:#ffb74d; --brand-dark:#ff9800; --border:#2a2f3a;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:clamp(15px,1.2vw,16px)/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+header{
+  background:var(--panel); box-shadow:var(--shadow); padding:1rem; text-align:center;
+}
+header h1{margin:0; font-size:clamp(1.6rem,4vw,2.1rem)}
+header p{margin:.25rem 0 0; color:var(--muted)}
+main{flex:1; max-width:900px; margin:1rem auto 2rem; padding:0 1rem}
+.controls{
+  display:grid; gap:.75rem; background:var(--panel); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:1rem; margin-bottom:1rem; border:1px solid var(--border);
+}
+.controls .row{display:grid; gap:.5rem}
+.controls input, .controls button{
+  font:inherit; padding:.6rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+@media(prefers-color-scheme:dark){
+  .controls input, .controls button{background:#1d2230; color:var(--text)}
+}
+.controls button{
+  background:var(--brand); color:#fff; border:none; cursor:pointer;
+}
+.controls button:hover{background:var(--brand-dark)}
+@media(min-width:640px){
+  .controls .row{grid-template-columns:1fr 150px}
+}
+.list{
+  display:grid; gap:1rem;
+}
+.habit{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:.8rem .9rem; display:flex; flex-direction:column;
+}
+.habit.done{background:var(--done)}
+.habit h3{margin:.1rem 0 .3rem; font-size:1.05rem}
+.habit .meta{font-size:.9rem; color:var(--muted)}
+.actions{margin-top:.5rem; display:flex; gap:.5rem}
+.actions button{
+  flex:1; padding:.4rem; border:1px solid var(--border); border-radius:8px; background:transparent; cursor:pointer;
+}
+.actions button:hover{background:rgba(0,0,0,.04)}
+@media(prefers-color-scheme:dark){
+  .actions button:hover{background:rgba(255,255,255,.06)}
+}
+footer{
+  background:var(--panel); border-top:1px solid var(--border); color:var(--muted);
+  text-align:center; font-size:.9rem; padding:1rem;
+}
+footer a{color:var(--brand); text-decoration:none}
+footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <h1>HabitTracker</h1>
+  <p>Track and maintain your daily habits</p>
+</header>
+<main>
+  <section class="controls" aria-label="Add habit">
+    <div class="row">
+      <input type="text" id="habitName" placeholder="Habit name" required>
+      <button id="addBtn" type="button">Add Habit</button>
+    </div>
+  </section>
+  <section id="habitList" class="list" aria-live="polite"></section>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — HabitTracker
+</footer>
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const KEY='habittracker_items';
+  $('#year').textContent=new Date().getFullYear();
+  const els={habitName:$('#habitName'),addBtn:$('#addBtn'),habitList:$('#habitList')};
+  let habits=JSON.parse(localStorage.getItem(KEY)||'[]');
+
+  function save(){localStorage.setItem(KEY,JSON.stringify(habits));}
+  function escapeHTML(str){return(str||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+
+  function render(){
+    els.habitList.innerHTML='';
+    habits.forEach((h,i)=>{
+      const div=document.createElement('div');
+      div.className='habit'+(h.done?' done':'');
+      div.innerHTML=`<h3>${escapeHTML(h.name)}</h3>
+        <div class="meta">Streak: ${h.streak} days</div>
+        <div class="actions">
+          <button data-action="toggle">${h.done?'Mark Undone':'Mark Done'}</button>
+          <button data-action="delete">Delete</button>
+        </div>`;
+      div.querySelectorAll('button').forEach(btn=>{
+        btn.onclick=()=>{
+          if(btn.dataset.action==='delete'){habits.splice(i,1);}
+          if(btn.dataset.action==='toggle'){
+            if(h.done){ h.done=false; h.streak=0; }
+            else { h.done=true; h.streak+=1; }
+          }
+          save();render();
+        };
+      });
+      els.habitList.appendChild(div);
+    });
+  }
+
+  function addHabit(){
+    const name=els.habitName.value.trim();
+    if(!name) return;
+    habits.push({name,done:false,streak:0});
+    save();
+    els.habitName.value='';
+    els.habitName.focus();
+    render();
+  }
+
+  els.addBtn.onclick=addHabit;
+  els.habitName.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();addHabit();}
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
