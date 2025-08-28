@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExpenseTracker Lite</title>
+<meta name="description" content="Offline expense tracker with category filters, summaries, and local storage.">
+<style>
+:root{
+  --bg:#f7f9fc; --panel:#fff; --border:#d9dde5;
+  --accent:#2f7df6; --radius:10px; --danger:#c0392b; --muted:#777;
+}
+body{
+  background:var(--bg); font-family:sans-serif; margin:0; padding:1rem;
+  display:flex; flex-direction:column; align-items:center;
+}
+h1{margin:1rem 0}
+form{display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem}
+input,select,button{
+  padding:.5rem; border-radius:var(--radius); border:1px solid var(--border); font:inherit;
+}
+button{background:var(--accent); color:#fff; border:none; cursor:pointer}
+button.danger{background:var(--danger)}
+table{border-collapse:collapse; width:100%; max-width:800px; background:var(--panel)}
+th,td{border:1px solid var(--border); padding:.5rem; text-align:left}
+th{background:#eef}
+tfoot td{font-weight:bold}
+.controls{margin:1rem 0; display:flex; gap:.5rem; flex-wrap:wrap}
+</style>
+</head>
+<body>
+<h1>ExpenseTracker Lite</h1>
+
+<form id="expenseForm">
+  <input id="desc" type="text" placeholder="Description" required>
+  <input id="amount" type="number" min="0.01" step="0.01" placeholder="Amount" required>
+  <input id="date" type="date" required>
+  <select id="category" required>
+    <option value="">Category</option>
+    <option>Food</option>
+    <option>Transport</option>
+    <option>Utilities</option>
+    <option>Entertainment</option>
+    <option>Other</option>
+  </select>
+  <button type="submit">Add</button>
+</form>
+
+<div class="controls">
+  <select id="filterMonth">
+    <option value="">All months</option>
+  </select>
+  <select id="filterCategory">
+    <option value="">All categories</option>
+  </select>
+  <button id="clearAll" class="danger" type="button">Clear All</button>
+</div>
+
+<table id="expenseTable">
+  <thead>
+    <tr>
+      <th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="3">Total</td>
+      <td id="totalAmount">0.00</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'expense_tracker_data';
+  let expenses = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+  const form = document.getElementById('expenseForm');
+  const desc = document.getElementById('desc');
+  const amount = document.getElementById('amount');
+  const date = document.getElementById('date');
+  const category = document.getElementById('category');
+  const tableBody = document.querySelector('#expenseTable tbody');
+  const totalAmount = document.getElementById('totalAmount');
+  const filterMonth = document.getElementById('filterMonth');
+  const filterCategory = document.getElementById('filterCategory');
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+  }
+
+  function renderFilters(){
+    // Month filter
+    const months = [...new Set(expenses.map(e=>e.date.slice(0,7)))].sort();
+    filterMonth.innerHTML = '<option value="">All months</option>' + months.map(m=>`<option>${m}</option>`).join('');
+    // Category filter
+    const cats = [...new Set(expenses.map(e=>e.category))].sort();
+    filterCategory.innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+  }
+
+  function render(){
+    tableBody.innerHTML = '';
+    let total = 0;
+    const fm = filterMonth.value;
+    const fc = filterCategory.value;
+    expenses
+      .filter(e=>(!fm||e.date.startsWith(fm)) && (!fc||e.category===fc))
+      .forEach((e,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${e.date}</td>
+          <td>${e.desc}</td>
+          <td>${e.category}</td>
+          <td>${e.amount.toFixed(2)}</td>
+          <td><button data-index="${i}" class="danger">Delete</button></td>
+        `;
+        tableBody.appendChild(tr);
+        total += e.amount;
+      });
+    totalAmount.textContent = total.toFixed(2);
+    renderFilters();
+  }
+
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    expenses.push({
+      desc: desc.value.trim(),
+      amount: parseFloat(amount.value),
+      date: date.value,
+      category: category.value
+    });
+    save();
+    form.reset();
+    render();
+  });
+
+  tableBody.addEventListener('click', e=>{
+    if(e.target.tagName==='BUTTON'){
+      expenses.splice(e.target.dataset.index,1);
+      save();
+      render();
+    }
+  });
+
+  filterMonth.addEventListener('change', render);
+  filterCategory.addEventListener('change', render);
+
+  document.getElementById('clearAll').addEventListener('click', ()=>{
+    if(confirm('Clear all expenses?')){
+      expenses = [];
+      save();
+      render();
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
