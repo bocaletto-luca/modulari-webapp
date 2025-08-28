@@ -1,0 +1,181 @@
+<!--
+  Application: FitTrack
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FitTrack — Your Personal Fitness Tracker</title>
+<meta name="description" content="FitTrack è una webapp offline e responsive per tracciare allenamenti e progressi di fitness. Licenza GPL v3.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="FitTrack — Your Personal Fitness Tracker">
+<meta property="og:description" content="Monitora allenamenti, note e obiettivi in un'unica pagina HTML.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #f5f7fa;
+  --panel: #fff;
+  --text: #2c2c2c;
+  --muted: #666;
+  --brand: #4cafef;
+  --brand-dark: #2e8cd6;
+  --radius: 10px;
+  --shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1217;
+    --panel: #1b1f27;
+    --text: #eaeaea;
+    --muted: #aaa;
+    --brand: #5fb8ff;
+    --brand-dark: #4cafef;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: clamp(15px,1.2vw,16px)/1.5 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  padding: 1rem;
+  background: var(--panel);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+header h1 { margin: 0; font-size: clamp(1.5rem,4vw,2rem); }
+main {
+  flex: 1;
+  max-width: 900px;
+  margin: 1rem auto;
+  padding: 0 1rem;
+}
+form {
+  display: grid;
+  gap: 0.5rem;
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+form input, form select, form button {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+form button {
+  background: var(--brand);
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+form button:hover {
+  background: var(--brand-dark);
+}
+.entry-list {
+  display: grid;
+  gap: 1rem;
+}
+.entry {
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.entry h3 { margin-top: 0; }
+.entry p { margin: .3rem 0; }
+footer {
+  padding: 1rem;
+  text-align: center;
+  font-size: .9rem;
+  color: var(--muted);
+  background: var(--panel);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>FitTrack</h1>
+  <p>Track your workouts and reach your goals</p>
+</header>
+<main>
+  <form id="workoutForm">
+    <input type="date" id="date" required>
+    <select id="type" required>
+      <option value="">Select workout type</option>
+      <option>Cardio</option>
+      <option>Strength</option>
+      <option>Flexibility</option>
+      <option>Other</option>
+    </select>
+    <input type="number" id="duration" placeholder="Duration (minutes)" required>
+    <input type="text" id="notes" placeholder="Notes">
+    <button type="submit">Add Workout</button>
+  </form>
+  <div class="entry-list" id="workoutList"></div>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — FitTrack
+</footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+const form = document.getElementById('workoutForm');
+const list = document.getElementById('workoutList');
+let workouts = JSON.parse(localStorage.getItem('fittrack_workouts') || '[]');
+
+function renderWorkouts(){
+  list.innerHTML = '';
+  workouts.forEach((w, i) => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <h3>${w.date} — ${w.type}</h3>
+      <p><strong>Duration:</strong> ${w.duration} min</p>
+      ${w.notes ? `<p>${w.notes}</p>` : ''}
+      <button data-index="${i}">Delete</button>
+    `;
+    div.querySelector('button').onclick = () => {
+      workouts.splice(i,1);
+      save();
+    };
+    list.appendChild(div);
+  });
+}
+
+function save(){
+  localStorage.setItem('fittrack_workouts', JSON.stringify(workouts));
+  renderWorkouts();
+}
+
+form.onsubmit = e => {
+  e.preventDefault();
+  workouts.push({
+    date: form.date.value,
+    type: form.type.value,
+    duration: form.duration.value,
+    notes: form.notes.value.trim()
+  });
+  form.reset();
+  save();
+};
+
+renderWorkouts();
+</script>
+</body>
+</html>
