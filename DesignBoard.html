@@ -1,0 +1,170 @@
+<!--
+  Application: DesignBoard
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DesignBoard — Visual Project Organizer</title>
+<meta name="description" content="DesignBoard is a single-file, offline, responsive app for organizing visual project ideas with images, notes, and categories. GPL v3 by Bocaletto Luca.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="DesignBoard — Visual Project Organizer">
+<meta property="og:description" content="Collect and arrange inspiration boards for projects, fully offline.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root{
+  --bg:#fafbff; --panel:#fff; --text:#1a1d24; --muted:#6d727d;
+  --brand:#ff4f81; --brand-dark:#e63b6e; --radius:12px;
+  --shadow:0 6px 18px rgba(0,0,0,.08); --border:#e6e8ef;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1016; --panel:#181b22; --text:#e6e9ef; --muted:#a5aab6;
+    --brand:#ff6b98; --brand-dark:#ff4f81; --border:#2a2f3a;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:clamp(15px,1.2vw,16px)/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  min-height:100vh; display:flex; flex-direction:column;
+}
+header{
+  background:var(--panel); box-shadow:var(--shadow); padding:1rem; text-align:center;
+}
+header h1{margin:0; font-size:clamp(1.6rem,4vw,2.1rem)}
+header p{margin:.25rem 0 0; color:var(--muted)}
+main{flex:1; max-width:1100px; margin:1rem auto 2rem; padding:0 1rem}
+.controls{
+  display:grid; gap:.75rem; background:var(--panel); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:1rem; margin-bottom:1rem; border:1px solid var(--border);
+}
+.controls .row{display:grid; gap:.5rem}
+.controls input, .controls textarea, .controls button{
+  font:inherit; padding:.6rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+@media(prefers-color-scheme:dark){
+  .controls input, .controls textarea, .controls button{background:#1d2230; color:var(--text)}
+}
+.controls textarea{min-height:80px}
+.controls button{
+  background:var(--brand); color:#fff; border:none; cursor:pointer;
+}
+.controls button:hover{background:var(--brand-dark)}
+@media(min-width:720px){
+  .controls .row{grid-template-columns:1fr 1fr}
+}
+.grid{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:1rem;
+}
+.card{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;
+}
+.card .thumb{
+  width:100%; aspect-ratio:4/3; background:#f0f0f0; display:grid; place-items:center; color:var(--muted); font-size:.9rem;
+}
+.card img{width:100%; height:100%; object-fit:cover}
+.card .body{padding:.8rem .9rem}
+.card h3{margin:.1rem 0 .3rem; font-size:1.05rem}
+.card p{margin:.3rem 0; font-size:.9rem}
+.actions{display:flex; gap:.5rem; margin-top:.5rem}
+.actions button{
+  flex:1; padding:.45rem .6rem; border-radius:10px; border:1px solid var(--border); background:transparent; cursor:pointer;
+}
+.actions button:hover{background:rgba(0,0,0,.04)}
+@media(prefers-color-scheme:dark){
+  .actions button:hover{background:rgba(255,255,255,.06)}
+}
+footer{
+  background:var(--panel); border-top:1px solid var(--border); color:var(--muted);
+  text-align:center; font-size:.9rem; padding:1rem;
+}
+footer a{color:var(--brand); text-decoration:none}
+footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <h1>DesignBoard</h1>
+  <p>Capture and organize visual ideas for your projects</p>
+</header>
+<main>
+  <section class="controls" aria-label="Add board item">
+    <div class="row">
+      <input type="text" id="title" placeholder="Title" required>
+      <input type="url" id="image" placeholder="Image URL (optional)">
+    </div>
+    <div class="row">
+      <textarea id="notes" placeholder="Notes"></textarea>
+      <button id="addBtn" type="button">Add Item</button>
+    </div>
+  </section>
+  <section id="board" class="grid" aria-live="polite"></section>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> —
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — DesignBoard
+</footer>
+<script>
+(function(){
+  'use strict';
+  const $=s=>document.querySelector(s);
+  const year=$('#year');year.textContent=new Date().getFullYear();
+  const KEY='designboard_items';
+  let items=JSON.parse(localStorage.getItem(KEY)||'[]');
+
+  const el={
+    title:$('#title'),image:$('#image'),notes:$('#notes'),addBtn:$('#addBtn'),board:$('#board')
+  };
+
+  function save(){localStorage.setItem(KEY,JSON.stringify(items));}
+  function escapeHTML(str){return(str||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+
+  function render(){
+    el.board.innerHTML=items.map((it,i)=>`
+      <article class="card" data-idx="${i}">
+        ${it.image?`<div class="thumb"><img src="${escapeHTML(it.image)}" alt=""></div>`:`<div class="thumb">No image</div>`}
+        <div class="body">
+          <h3>${escapeHTML(it.title)}</h3>
+          ${it.notes?`<p>${escapeHTML(it.notes)}</p>`:''}
+          <div class="actions">
+            <button data-action="delete">Delete</button>
+          </div>
+        </div>
+      </article>
+    `).join('');
+    el.board.querySelectorAll('button[data-action="delete"]').forEach(btn=>{
+      btn.onclick=()=>{
+        const idx=parseInt(btn.closest('.card').dataset.idx);
+        items.splice(idx,1);save();render();
+      };
+    });
+  }
+
+  function addItem(){
+    const title=el.title.value.trim(); if(!title) return el.title.focus();
+    items.push({title,image:el.image.value.trim(),notes:el.notes.value.trim()});
+    save();
+    el.title.value='';el.image.value='';el.notes.value='';
+    el.title.focus();
+    render();
+  }
+
+  el.addBtn.addEventListener('click',addItem);
+  ['title','image','notes'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown',e=>{
+      if(e.key==='Enter' && id!=='notes'){e.preventDefault();addItem();}
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>
