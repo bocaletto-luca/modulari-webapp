@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Calendario & Planner Offline</title>
+<style>
+:root{
+  --bg:#f7f9fc; --panel:#fff; --border:#dadde5;
+  --accent:#2f7df6; --radius:10px; --muted:#777;
+}
+body{
+  background:var(--bg); font-family:sans-serif; margin:0; padding:1rem;
+  display:flex; flex-direction:column; align-items:center;
+}
+h1{margin:1rem 0}
+.calendar{
+  display:grid; grid-template-columns:repeat(7,1fr); gap:4px; max-width:900px; width:100%;
+}
+.day{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  min-height:90px; padding:4px; display:flex; flex-direction:column;
+  cursor:pointer; position:relative;
+}
+.day header{font-weight:bold; font-size:0.9rem; margin-bottom:4px;}
+.day.today{border:2px solid var(--accent);}
+.event{
+  background:var(--accent); color:#fff; border-radius:6px;
+  padding:2px 4px; font-size:0.75rem; margin-bottom:2px;
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+.controls{
+  display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap;
+  justify-content:center; align-items:center;
+}
+button{
+  background:var(--accent); color:#fff; border:none;
+  border-radius:var(--radius); padding:.4rem .8rem; cursor:pointer;
+}
+input,textarea{
+  border:1px solid var(--border); border-radius:var(--radius); padding:.4rem; width:100%;
+}
+.modal{
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center;
+}
+.modal-content{
+  background:var(--panel); border-radius:var(--radius); padding:1rem; width:320px;
+}
+.modal-content h2{margin-top:0}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<h1>Calendario & Planner</h1>
+
+<div class="controls">
+  <button id="prevMonth">&lt; Precedente</button>
+  <div id="monthYear"></div>
+  <button id="nextMonth">Successivo &gt;</button>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+<div class="modal hidden" id="eventModal">
+  <div class="modal-content">
+    <h2 id="modalTitle">Nuovo evento</h2>
+    <form id="eventForm">
+      <input type="text" id="eventTitle" placeholder="Titolo" required>
+      <textarea id="eventDesc" placeholder="Descrizione"></textarea>
+      <input type="time" id="eventTime">
+      <div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:space-between">
+        <button type="submit">Salva</button>
+        <button type="button" id="deleteEvent" style="background:#c0392b">Elimina</button>
+        <button type="button" id="cancelModal" style="background:#777">Annulla</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  const calendarEl = document.getElementById('calendar');
+  const monthYearEl = document.getElementById('monthYear');
+  const modal = document.getElementById('eventModal');
+  const eventForm = document.getElementById('eventForm');
+  const eventTitle = document.getElementById('eventTitle');
+  const eventDesc = document.getElementById('eventDesc');
+  const eventTime = document.getElementById('eventTime');
+  const modalTitle = document.getElementById('modalTitle');
+  const deleteBtn = document.getElementById('deleteEvent');
+  const cancelBtn = document.getElementById('cancelModal');
+
+  const STORAGE_KEY = 'calendar_events_v1';
+  let events = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  let currentMonth = new Date().getMonth();
+  let currentYear = new Date().getFullYear();
+  let selectedDate = null;
+
+  function saveEvents(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+  }
+
+  function openModal(dateStr){
+    selectedDate = dateStr;
+    const existing = events[dateStr] || [];
+    if(existing.length === 1){
+      const e = existing[0];
+      eventTitle.value = e.title;
+      eventDesc.value = e.desc;
+      eventTime.value = e.time || '';
+      modalTitle.textContent = "Modifica evento";
+      deleteBtn.style.display = '';
+    }else{
+      eventTitle.value = '';
+      eventDesc.value = '';
+      eventTime.value = '';
+      modalTitle.textContent = "Nuovo evento";
+      deleteBtn.style.display = 'none';
+    }
+    modal.classList.remove('hidden');
+  }
+
+  function closeModal(){
+    modal.classList.add('hidden');
+  }
+
+  function renderCalendar(){
+    calendarEl.innerHTML = '';
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
+    monthYearEl.textContent = new Date(currentYear, currentMonth)
+      .toLocaleString('it-IT',{month:'long', year:'numeric'});
+
+    const blanks = (firstDay+6)%7; // lunedì=0
+    for(let i=0; i<blanks; i++){
+      const blankCell = document.createElement('div');
+      calendarEl.appendChild(blankCell);
+    }
+
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const cell = document.createElement('div');
+      cell.className = 'day';
+      if(dateStr === todayStr()) cell.classList.add('today');
+
+      const head = document.createElement('header');
+      head.textContent = d;
+      cell.appendChild(head);
+
+      if(events[dateStr]){
+        events[dateStr].forEach(ev=>{
+          const evEl = document.createElement('div');
+          evEl.className = 'event';
+          evEl.textContent = ev.time ? `${ev.time} ${ev.title}` : ev.title;
+          cell.appendChild(evEl);
+        });
+      }
+
+      cell.addEventListener('click', ()=>openModal(dateStr));
+      calendarEl.appendChild(cell);
+    }
+  }
+
+  function todayStr(){
+    const t=new Date();
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  }
+
+  eventForm.addEventListener('submit', e=>{
+    e.preventDefault();
+    if(!selectedDate) return;
+    events[selectedDate] = [{
+      title:eventTitle.value.trim(),
+      desc:eventDesc.value.trim(),
+      time:eventTime.value
+    }];
+    saveEvents();
+    closeModal();
+    renderCalendar();
+  });
+
+  deleteBtn.addEventListener('click', ()=>{
+    if(selectedDate && events[selectedDate]){
+      delete events[selectedDate];
+      saveEvents();
+    }
+    closeModal();
+    renderCalendar();
+  });
+
+  cancelBtn.addEventListener('click', closeModal);
+  document.getElementById('prevMonth').addEventListener('click',()=>{
+    currentMonth--;
+    if(currentMonth<0){currentMonth=11; currentYear--;}
+    renderCalendar();
+  });
+  document.getElementById('nextMonth').addEventListener('click',()=>{
+    currentMonth++;
+    if(currentMonth>11){currentMonth=0; currentYear++;}
+    renderCalendar();
+  });
+
+  renderCalendar();
+})();
+</script>
+</body>
+</html>
