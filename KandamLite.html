@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KanbanLite — Offline Board</title>
+<meta name="description" content="A single-file, offline Kanban board with drag-and-drop, search, tags, and local persistence.">
+<style>
+:root{
+  --bg:#f7f9fc; --panel:#ffffff; --text:#12151c; --muted:#6b7380;
+  --brand:#316eff; --brand-2:#00bfa5; --danger:#d64545; --warn:#f59e0b; --ok:#2e7d32;
+  --border:#e5e8f0; --radius:12px; --shadow:0 8px 24px rgba(0,0,0,.08);
+  --chip:#eff3ff; --chip-text:#244; --col-bg:#fbfcff;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1117; --panel:#161b22; --text:#e7e9ef; --muted:#a5aab6;
+    --brand:#6aa6ff; --brand-2:#26d7c3; --danger:#ff6b6b; --warn:#f7c268; --ok:#7bdc8a;
+    --border:#242a34; --chip:#1f2a44; --chip-text:#cfe0ff; --col-bg:#121722;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:clamp(14px,1.1vw,16px)/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  display:flex; flex-direction:column;
+}
+header{
+  background:var(--panel); box-shadow:var(--shadow); border-bottom:1px solid var(--border);
+  padding:1rem; position:sticky; top:0; z-index:10;
+}
+header .row{display:flex; gap:.8rem; align-items:center; justify-content:space-between; max-width:1200px; margin:0 auto}
+header h1{margin:0; font-size:clamp(1.2rem,2.6vw,1.6rem)}
+header .muted{color:var(--muted); font-size:.92rem}
+
+main{flex:1; max-width:1200px; margin:1rem auto 2rem; padding:0 1rem; width:100%}
+
+.toolbar{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:.8rem; display:grid; gap:.6rem; grid-template-columns:1fr 220px 180px 160px 120px;
+}
+@media (max-width:980px){ .toolbar{grid-template-columns:1fr 1fr} }
+@media (max-width:580px){ .toolbar{grid-template-columns:1fr} }
+.toolbar input,.toolbar select,.toolbar button{
+  font:inherit; padding:.55rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+@media (prefers-color-scheme: dark){ .toolbar input,.toolbar select{background:#1b2432; color:var(--text)} }
+.toolbar button{background:var(--brand); color:#fff; border:none; cursor:pointer}
+.toolbar button.secondary{background:transparent; color:var(--text); border:1px solid var(--border)}
+.toolbar button.danger{background:var(--danger)}
+.toolbar button:hover{filter:brightness(.95)}
+
+.board{
+  display:grid; gap:1rem; grid-template-columns:repeat(4,1fr);
+  align-items:start;
+}
+@media (max-width:1100px){ .board{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:840px){ .board{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:560px){ .board{grid-template-columns:1fr} }
+
+.column{
+  background:var(--panel); border:1px solid var(--border); border-radius:14px;
+  box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column; min-height:220px;
+}
+.col-head{
+  display:flex; align-items:center; justify-content:space-between; gap:.6rem;
+  padding:.8rem .9rem; border-bottom:1px solid var(--border); background:var(--col-bg);
+}
+.col-title{font-weight:800; letter-spacing:.2px}
+.col-count{color:var(--muted); font-size:.85rem}
+.col-body{padding:.8rem; display:grid; gap:.6rem; min-height:120px}
+.col-footer{border-top:1px solid var(--border); padding:.7rem .8rem; background:var(--col-bg)}
+.col-footer button{width:100%; background:transparent; color:var(--brand); border:1px dashed var(--border)}
+
+.card{
+  background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:.7rem .8rem;
+  display:grid; gap:.4rem; cursor:grab;
+}
+.card:active{cursor:grabbing}
+.card.dragging{opacity:.6}
+.card .title{font-weight:700}
+.card .meta{display:flex; flex-wrap:wrap; gap:.4rem; color:var(--muted); font-size:.85rem}
+.tag{
+  display:inline-flex; align-items:center; gap:.35rem; padding:.12rem .5rem; border:1px solid var(--border);
+  border-radius:999px; background:var(--chip); color:var(--chip-text); font-weight:600; font-size:.78rem;
+}
+.prio{font-weight:800}
+.prio.low{color:var(--muted)}
+.prio.medium{color:var(--warn)}
+.prio.high{color:var(--danger)}
+
+.actions{display:flex; gap:.4rem}
+.btn-icon{
+  border:1px solid var(--border); background:transparent; border-radius:8px; padding:.35rem .5rem; cursor:pointer;
+}
+.btn-icon:hover{background:rgba(0,0,0,.04)}
+@media (prefers-color-scheme: dark){ .btn-icon:hover{background:rgba(255,255,255,.06)} }
+
+.dropzone{
+  border:2px dashed transparent; border-radius:12px;
+}
+.dropzone.over{border-color:var(--brand)}
+
+.small{font-size:.88rem; color:var(--muted)}
+.hidden{display:none !important}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
+/* Modal */
+.modal{
+  position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:50;
+}
+.modal-content{
+  background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
+  padding:1rem; width:min(560px,92vw); display:grid; gap:.7rem;
+}
+.modal-grid{display:grid; gap:.6rem; grid-template-columns:1fr 1fr}
+@media (max-width:680px){ .modal-grid{grid-template-columns:1fr} }
+.modal h3{margin:.2rem 0 .2rem}
+.modal input,.modal select,.modal textarea{
+  font:inherit; padding:.55rem .7rem; border:1px solid var(--border); border-radius:10px; background:#fff;
+}
+@media (prefers-color-scheme: dark){ .modal input,.modal select,.modal textarea{background:#1b2432; color:var(--text)} }
+.modal .row{display:flex; gap:.6rem; justify-content:flex-end}
+.modal .row button{padding:.55rem .8rem; border-radius:10px; border:1px solid var(--border); cursor:pointer}
+.modal .row .primary{background:var(--brand); border:none; color:#fff}
+.modal .row .danger{background:var(--danger); border:none; color:#fff}
+.modal .row .ghost{background:transparent}
+
+/* Toast */
+.toast{
+  position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow);
+  padding:.6rem .9rem; color:var(--text);
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <div>
+      <h1>KanbanLite</h1>
+      <div class="muted">Offline board with drag-and-drop, tags, and local persistence</div>
+    </div>
+    <div class="small">v1.0</div>
+  </div>
+</header>
+
+<main>
+  <section class="toolbar" aria-label="Board toolbar">
+    <input id="q" type="search" placeholder="Search tasks or tags" aria-label="Search tasks">
+    <select id="filterPrio" aria-label="Filter by priority">
+      <option value="">Priority: All</option>
+      <option value="low">Priority: Low</option>
+      <option value="medium">Priority: Medium</option>
+      <option value="high">Priority: High</option>
+    </select>
+    <select id="filterTag" aria-label="Filter by tag">
+      <option value="">Tag: All</option>
+    </select>
+    <button id="addTask" type="button">New Task</button>
+    <div style="display:flex;gap:.5rem">
+      <button id="exportData" class="secondary" type="button" title="Export board JSON">Export</button>
+      <button id="importData" class="secondary" type="button" title="Import board JSON">Import</button>
+      <button id="clearAll" class="danger" type="button" title="Clear all data">Clear</button>
+    </div>
+  </section>
+
+  <section id="board" class="board" aria-label="Kanban board">
+    <!-- Columns will be rendered here -->
+  </section>
+</main>
+
+<!-- Task Modal -->
+<div id="taskModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+  <div class="modal-content">
+    <h3 id="taskModalTitle">Task</h3>
+    <div class="modal-grid">
+      <div>
+        <label class="small" for="title">Title</label>
+        <input id="title" type="text" placeholder="Short summary">
+      </div>
+      <div>
+        <label class="small" for="due">Due date</label>
+        <input id="due" type="date">
+      </div>
+      <div>
+        <label class="small" for="priority">Priority</label>
+        <select id="priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div>
+        <label class="small" for="tags">Tags (comma separated)</label>
+        <input id="tags" type="text" placeholder="design, backend">
+      </div>
+      <div style="grid-column:1/-1">
+        <label class="small" for="desc">Description</label>
+        <textarea id="desc" rows="5" placeholder="Details, acceptance criteria, links..."></textarea>
+      </div>
+    </div>
+    <div class="row">
+      <button id="deleteTask" class="danger" type="button">Delete</button>
+      <span style="flex:1"></span>
+      <button id="cancelTask" class="ghost" type="button">Cancel</button>
+      <button id="saveTask" class="primary" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import/Export Modal -->
+<div id="ioModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ioModalTitle">
+  <div class="modal-content">
+    <h3 id="ioModalTitle">Import / Export</h3>
+    <textarea id="ioArea" rows="10" placeholder="Paste JSON here or copy to export"></textarea>
+    <div class="row">
+      <button id="cancelIO" class="ghost" type="button">Close</button>
+      <button id="doImport" class="primary" type="button">Import JSON</button>
+      <button id="copyExport" class="secondary" type="button">Copy</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ---------- Utilities ----------
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const uid = () => Math.random().toString(36).slice(2,9);
+  const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+  const todayISO = () => new Date().toISOString().slice(0,10);
+
+  function showToast(msg, ms=1800){
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    clearTimeout(showToast._id);
+    showToast._id = setTimeout(()=>t.classList.add('hidden'), ms);
+  }
+
+  function escapeHTML(str){
+    return (str||'').replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
+  }
+
+  // ---------- Data ----------
+  const STORAGE_KEY = 'kanbanlite_v1';
+  const DEFAULT_COLUMNS = [
+    { id:'backlog', name:'Backlog' },
+    { id:'todo', name:'To Do' },
+    { id:'doing', name:'In Progress' },
+    { id:'done', name:'Done' }
+  ];
+
+  /**
+   * Shape:
+   * state = {
+   *   columns: [{id,name}],
+   *   tasks: { [id]: { id, title, desc, tags:[], priority, due, column, order, createdAt } }
+   * }
+   */
+  let state = load();
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return seed();
+      const parsed = JSON.parse(raw);
+      // minimal validation
+      if(!parsed.columns || !parsed.tasks) return seed();
+      return parsed;
+    }catch(e){
+      console.warn('Load failed, seeding', e);
+      return seed();
+    }
+  }
+
+  function seed(){
+    const task1 = {
+      id: uid(), title:'Welcome to KanbanLite', desc:'Drag cards between columns. Click a card to edit.',
+      tags:['intro'], priority:'medium', due: '', column:'backlog', order:0, createdAt: Date.now()
+    };
+    const task2 = {
+      id: uid(), title:'Add your first task', desc:'Use the New Task button or column add button.',
+      tags:['getting-started'], priority:'low', due: todayISO(), column:'todo', order:0, createdAt: Date.now()
+    };
+    const tasks = {};
+    tasks[task1.id]=task1; tasks[task2.id]=task2;
+    return { columns: DEFAULT_COLUMNS, tasks };
+  }
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // ---------- Filters ----------
+  const els = {
+    board: $('#board'),
+    q: $('#q'),
+    filterPrio: $('#filterPrio'),
+    filterTag: $('#filterTag'),
+    addTask: $('#addTask'),
+    exportData: $('#exportData'),
+    importData: $('#importData'),
+    clearAll: $('#clearAll'),
+    // modal
+    taskModal: $('#taskModal'),
+    title: $('#title'),
+    desc: $('#desc'),
+    tags: $('#tags'),
+    priority: $('#priority'),
+    due: $('#due'),
+    saveTask: $('#saveTask'),
+    deleteTask: $('#deleteTask'),
+    cancelTask: $('#cancelTask'),
+    // io modal
+    ioModal: $('#ioModal'),
+    ioArea: $('#ioArea'),
+    cancelIO: $('#cancelIO'),
+    doImport: $('#doImport'),
+    copyExport: $('#copyExport'),
+  };
+
+  let editingId = null;
+
+  function activeFilters(){
+    return {
+      q: els.q.value.trim().toLowerCase(),
+      prio: els.filterPrio.value,
+      tag: els.filterTag.value
+    };
+  }
+
+  function taskMatches(t, f){
+    const qok = !f.q || (
+      t.title.toLowerCase().includes(f.q) ||
+      t.desc.toLowerCase().includes(f.q) ||
+      t.tags.some(tag=>tag.toLowerCase().includes(f.q))
+    );
+    const pok = !f.prio || t.priority === f.prio;
+    const tok = !f.tag || t.tags.map(x=>x.toLowerCase()).includes(f.tag.toLowerCase());
+    return qok && pok && tok;
+  }
+
+  function allTags(){
+    const set = new Set();
+    Object.values(state.tasks).forEach(t=>t.tags.forEach(tag=>set.add(tag)));
+    return Array.from(set).sort((a,b)=>a.localeCompare(b));
+  }
+
+  function refreshTagFilter(){
+    const tags = allTags();
+    els.filterTag.innerHTML = '<option value="">Tag: All</option>' + tags.map(t=>`<option>${escapeHTML(t)}</option>`).join('');
+  }
+
+  // ---------- Render ----------
+  function render(){
+    refreshTagFilter();
+
+    const f = activeFilters();
+    els.board.innerHTML = '';
+
+    state.columns.forEach(col=>{
+      const section = document.createElement('section');
+      section.className = 'column';
+      section.dataset.col = col.id;
+
+      const head = document.createElement('div');
+      head.className = 'col-head';
+      const title = document.createElement('div');
+      title.className = 'col-title';
+      title.textContent = col.name;
+      const count = document.createElement('div');
+      count.className = 'col-count';
+      const tasks = columnTasks(col.id, f);
+      count.textContent = tasks.length + ' items';
+      head.append(title, count);
+
+      const body = document.createElement('div');
+      body.className = 'col-body dropzone';
+      body.dataset.col = col.id;
+
+      tasks.forEach(t=>{
+        body.appendChild(taskCard(t));
+      });
+
+      const foot = document.createElement('div');
+      foot.className = 'col-footer';
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.textContent = 'Add task';
+      addBtn.onclick = ()=>openTaskModal({ column: col.id });
+      foot.appendChild(addBtn);
+
+      section.append(head, body, foot);
+      els.board.appendChild(section);
+    });
+
+    bindDnD();
+  }
+
+  function columnTasks(colId, filter){
+    return Object.values(state.tasks)
+      .filter(t=>t.column === colId)
+      .filter(t=>taskMatches(t, filter))
+      .sort((a,b)=>a.order - b.order || a.createdAt - b.createdAt);
+  }
+
+  function taskCard(t){
+    const div = document.createElement('article');
+    div.className = 'card';
+    div.draggable = true;
+    div.dataset.id = t.id;
+
+    const ttl = document.createElement('div');
+    ttl.className = 'title';
+    ttl.textContent = t.title || '(Untitled)';
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const pr = document.createElement('span');
+    pr.className = `prio ${t.priority}`;
+    pr.textContent = `P: ${t.priority}`;
+    meta.appendChild(pr);
+
+    if(t.due){
+      const due = document.createElement('span');
+      due.textContent = `Due: ${t.due}`;
+      meta.appendChild(due);
+    }
+
+    if(t.tags.length){
+      t.tags.forEach(tag=>{
+        const chip = document.createElement('span');
+        chip.className = 'tag';
+        chip.textContent = tag;
+        meta.appendChild(chip);
+      });
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const edit = document.createElement('button');
+    edit.className = 'btn-icon';
+    edit.type = 'button';
+    edit.textContent = 'Edit';
+    edit.onclick = ()=>openTaskModal({ id: t.id });
+    const del = document.createElement('button');
+    del.className = 'btn-icon';
+    del.type = 'button';
+    del.textContent = 'Remove';
+    del.onclick = ()=>removeTask(t.id);
+    actions.append(edit, del);
+
+    div.append(ttl, meta, actions);
+    return div;
+  }
+
+  // ---------- DnD ----------
+  function bindDnD(){
+    $$('.card').forEach(card=>{
+      card.addEventListener('dragstart', e=>{
+        card.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', card.dataset.id);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      card.addEventListener('dragend', ()=>card.classList.remove('dragging'));
+    });
+
+    $$('.dropzone').forEach(zone=>{
+      zone.addEventListener('dragover', e=>{
+        e.preventDefault();
+        zone.classList.add('over');
+        const after = getDragAfterElement(zone, e.clientY);
+        const id = e.dataTransfer.types.includes('text/plain') ? e.dataTransfer.getData('text/plain') : null;
+        const draggable = id ? document.querySelector(`.card[data-id="${id}"]`) : $('.card.dragging');
+        if(!draggable) return;
+        if(after==null) zone.appendChild(draggable);
+        else zone.insertBefore(draggable, after);
+      });
+      zone.addEventListener('dragleave', ()=>zone.classList.remove('over'));
+      zone.addEventListener('drop', e=>{
+        e.preventDefault();
+        zone.classList.remove('over');
+        const id = e.dataTransfer.getData('text/plain');
+        if(!id) return;
+        const col = zone.dataset.col;
+        persistNewOrder(col, zone);
+      });
+    });
+  }
+
+  function getDragAfterElement(container, y){
+    const cards = [...container.querySelectorAll('.card:not(.dragging)')];
+    return cards.reduce((closest, child)=>{
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height/2;
+      if(offset < 0 && offset > closest.offset) return { offset, element: child };
+      else return closest;
+    }, { offset: Number.NEGATIVE_INFINITY }).element || null;
+  }
+
+  function persistNewOrder(colId, container){
+    const ids = [...container.querySelectorAll('.card')].map(el=>el.dataset.id);
+    ids.forEach((id, idx)=>{
+      const t = state.tasks[id];
+      if(!t) return;
+      t.column = colId;
+      t.order = idx;
+    });
+    save();
+    renderCountsOnly();
+    showToast('Order updated');
+  }
+
+  function renderCountsOnly(){
+    // quick refresh of counts without full re-render
+    $$('.column').forEach(colEl=>{
+      const colId = colEl.dataset.col;
+      const f = activeFilters();
+      const count = columnTasks(colId, f).length;
+      colEl.querySelector('.col-count').textContent = count + ' items';
+    });
+  }
+
+  // ---------- Modal: Task ----------
+  function openTaskModal({ id=null, column=null }){
+    editingId = id;
+    if(editingId){
+      const t = state.tasks[editingId];
+      $('#taskModalTitle').textContent = 'Edit Task';
+      els.title.value = t.title || '';
+      els.desc.value = t.desc || '';
+      els.tags.value = t.tags.join(', ');
+      els.priority.value = t.priority || 'medium';
+      els.due.value = t.due || '';
+      els.deleteTask.classList.remove('hidden');
+    }else{
+      $('#taskModalTitle').textContent = 'New Task';
+      els.title.value = '';
+      els.desc.value = '';
+      els.tags.value = '';
+      els.priority.value = 'medium';
+      els.due.value = '';
+      els.deleteTask.classList.add('hidden');
+    }
+    els.taskModal.dataset.column = column || (editingId ? state.tasks[editingId].column : state.columns[0].id);
+    els.taskModal.classList.remove('hidden');
+    els.title.focus();
+  }
+
+  function closeTaskModal(){
+    els.taskModal.classList.add('hidden');
+    editingId = null;
+    els.taskModal.removeAttribute('data-column');
+  }
+
+  function upsertTask(){
+    const column = els.taskModal.dataset.column || state.columns[0].id;
+    const title = els.title.value.trim();
+    if(!title){ showToast('Title is required'); els.title.focus(); return; }
+
+    const payload = {
+      title,
+      desc: els.desc.value.trim(),
+      tags: els.tags.value.split(',').map(s=>s.trim()).filter(Boolean),
+      priority: els.priority.value,
+      due: els.due.value
+    };
+
+    if(editingId){
+      Object.assign(state.tasks[editingId], payload);
+      showToast('Task updated');
+    }else{
+      const id = uid();
+      const order = columnTasks(column, {q:'',prio:'',tag:''}).length;
+      state.tasks[id] = {
+        id, column, order,
+        createdAt: Date.now(),
+        ...payload
+      };
+      showToast('Task added');
+    }
+    save();
+    render();
+    closeTaskModal();
+  }
+
+  function removeTask(id){
+    if(!state.tasks[id]) return;
+    delete state.tasks[id];
+    save();
+    render();
+    showToast('Task removed');
+  }
+
+  // ---------- Import / Export ----------
+  function openExport(){
+    const data = JSON.stringify(state, null, 2);
+    els.ioArea.value = data;
+    $('#ioModalTitle').textContent = 'Export JSON';
+    els.ioModal.classList.remove('hidden');
+    els.ioArea.focus();
+    els.ioArea.select();
+  }
+
+  function openImport(){
+    els.ioArea.value = '';
+    $('#ioModalTitle').textContent = 'Import JSON';
+    els.ioModal.classList.remove('hidden');
+    els.ioArea.focus();
+  }
+
+  function closeIO(){ els.ioModal.classList.add('hidden'); }
+
+  function doImport(){
+    try{
+      const obj = JSON.parse(els.ioArea.value);
+      if(!obj || !obj.columns || !obj.tasks) throw new Error('Invalid schema');
+      state = obj;
+      save();
+      render();
+      closeIO();
+      showToast('Import successful');
+    }catch(e){
+      showToast('Import failed: invalid JSON');
+    }
+  }
+
+  async function copyExport(){
+    try{
+      await navigator.clipboard.writeText(els.ioArea.value);
+      showToast('Copied to clipboard');
+    }catch{
+      els.ioArea.select();
+      showToast('Press Ctrl/Cmd+C to copy');
+    }
+  }
+
+  // ---------- Events ----------
+  els.q.addEventListener('input', render);
+  els.filterPrio.addEventListener('change', render);
+  els.filterTag.addEventListener('change', render);
+  els.addTask.addEventListener('click', ()=>openTaskModal({}));
+  els.exportData.addEventListener('click', openExport);
+  els.importData.addEventListener('click', openImport);
+  els.clearAll.addEventListener('click', ()=>{
+    if(confirm('Clear all data? This cannot be undone.')){
+      state = seed();
+      save(); render();
+      showToast('All data cleared');
+    }
+  });
+
+  els.saveTask.addEventListener('click', upsertTask);
+  els.deleteTask.addEventListener('click', ()=>{
+    if(editingId) removeTask(editingId);
+    closeTaskModal();
+  });
+  els.cancelTask.addEventListener('click', closeTaskModal);
+
+  els.cancelIO.addEventListener('click', closeIO);
+  els.doImport.addEventListener('click', doImport);
+  els.copyExport.addEventListener('click', copyExport);
+
+  // Close modals with Escape
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      if(!els.taskModal.classList.contains('hidden')) closeTaskModal();
+      if(!els.ioModal.classList.contains('hidden')) closeIO();
+    }
+  });
+
+  // ---------- Init ----------
+  render();
+
+})();
+</script>
+</body>
+</html>
