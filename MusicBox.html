@@ -1,0 +1,175 @@
+<!--
+  Application: MusicBox
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MusicBox — Your Personal Music Library</title>
+<meta name="description" content="MusicBox è una webapp monofile, offline e responsive per organizzare playlist e brani preferiti. Licenza GPL v3.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="MusicBox — Your Personal Music Library">
+<meta property="og:description" content="Gestisci tracce, artisti e playlist in un'unica pagina HTML offline.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #fdfcfa;
+  --panel: #fff;
+  --text: #2c2c2c;
+  --muted: #666;
+  --brand: #3f51b5;
+  --brand-dark: #303f9f;
+  --radius: 10px;
+  --shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101012;
+    --panel: #1c1c1f;
+    --text: #eaeaea;
+    --muted: #aaa;
+    --brand: #5c6bc0;
+    --brand-dark: #3f51b5;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: clamp(15px,1.2vw,16px)/1.5 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  padding: 1rem;
+  background: var(--panel);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+header h1 { margin: 0; font-size: clamp(1.5rem,4vw,2rem); }
+main {
+  flex: 1;
+  max-width: 900px;
+  margin: 1rem auto;
+  padding: 0 1rem;
+}
+form {
+  display: grid;
+  gap: 0.5rem;
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+form input, form button {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+form button {
+  background: var(--brand);
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+form button:hover {
+  background: var(--brand-dark);
+}
+.entry-list {
+  display: grid;
+  gap: 1rem;
+}
+.entry {
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.entry h3 { margin-top: 0; }
+.entry p { margin: .3rem 0; }
+footer {
+  padding: 1rem;
+  text-align: center;
+  font-size: .9rem;
+  color: var(--muted);
+  background: var(--panel);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MusicBox</h1>
+  <p>Organize your music collection</p>
+</header>
+<main>
+  <form id="trackForm">
+    <input type="text" id="title" placeholder="Track title" required>
+    <input type="text" id="artist" placeholder="Artist">
+    <input type="text" id="album" placeholder="Album">
+    <input type="text" id="playlist" placeholder="Playlist">
+    <button type="submit">Add Track</button>
+  </form>
+  <div class="entry-list" id="trackList"></div>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — MusicBox
+</footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+const form = document.getElementById('trackForm');
+const list = document.getElementById('trackList');
+let tracks = JSON.parse(localStorage.getItem('musicbox_tracks') || '[]');
+
+function renderTracks(){
+  list.innerHTML = '';
+  tracks.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <h3>${t.title}${t.artist ? ` <small>by ${t.artist}</small>` : ''}</h3>
+      ${t.album ? `<p><strong>Album:</strong> ${t.album}</p>` : ''}
+      ${t.playlist ? `<p><strong>Playlist:</strong> ${t.playlist}</p>` : ''}
+      <button data-index="${i}">Delete</button>
+    `;
+    div.querySelector('button').onclick = () => {
+      tracks.splice(i,1);
+      save();
+    };
+    list.appendChild(div);
+  });
+}
+
+function save(){
+  localStorage.setItem('musicbox_tracks', JSON.stringify(tracks));
+  renderTracks();
+}
+
+form.onsubmit = e => {
+  e.preventDefault();
+  tracks.push({
+    title: form.title.value.trim(),
+    artist: form.artist.value.trim(),
+    album: form.album.value.trim(),
+    playlist: form.playlist.value.trim()
+  });
+  form.reset();
+  save();
+};
+
+renderTracks();
+</script>
+</body>
+</html>
