@@ -164,4 +164,32 @@ footer a:hover{text-decoration:underline}
             save();render();
           };
         });
-        els[status].appendChild(div);
+                els[status].appendChild(div);
+      });
+    });
+  }
+
+  function addTask(){
+    const title=els.title.value.trim();
+    const status=els.status.value;
+    const desc=els.desc.value.trim();
+    if(!title || !status){ els.title.focus(); return; }
+    tasks.push({title, status, desc});
+    save();
+    els.title.value=''; els.status.value=''; els.desc.value='';
+    els.title.focus();
+    render();
+  }
+
+  els.addBtn.addEventListener('click', addTask);
+  ['title','status','desc'].forEach(id=>{
+    document.getElementById(id).addEventListener('keydown', e=>{
+      if(e.key==='Enter' && id!=='desc'){ e.preventDefault(); addTask(); }
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
