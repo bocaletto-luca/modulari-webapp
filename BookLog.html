@@ -1,0 +1,180 @@
+<!--
+  Application: BookLog
+  Author: Bocaletto Luca
+  License: GPL v3
+  Repository: https://github.com/bocaletto-luca/modulari-webapp
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BookLog — Track Your Reading Journey</title>
+<meta name="description" content="BookLog è una webapp offline e responsive per registrare e gestire i libri letti o da leggere. Licenza GPL v3.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="BookLog — Track Your Reading Journey">
+<meta property="og:description" content="Organizza letture passate, presenti e future in un unico file HTML.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  --bg: #fafaf7;
+  --panel: #fff;
+  --text: #2c2c2c;
+  --muted: #666;
+  --brand: #9c27b0;
+  --brand-dark: #7b1fa2;
+  --radius: 10px;
+  --shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131213;
+    --panel: #1d1d1f;
+    --text: #eaeaea;
+    --muted: #aaa;
+    --brand: #ba68c8;
+    --brand-dark: #9c27b0;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: clamp(15px,1.2vw,16px)/1.5 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  padding: 1rem;
+  background: var(--panel);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+header h1 { margin: 0; font-size: clamp(1.5rem,4vw,2rem); }
+main {
+  flex: 1;
+  max-width: 900px;
+  margin: 1rem auto;
+  padding: 0 1rem;
+}
+form {
+  display: grid;
+  gap: 0.5rem;
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+form input, form select, form button {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+}
+form button {
+  background: var(--brand);
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+form button:hover {
+  background: var(--brand-dark);
+}
+.entry-list {
+  display: grid;
+  gap: 1rem;
+}
+.entry {
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.entry h3 { margin-top: 0; }
+.entry p { margin: .3rem 0; }
+footer {
+  padding: 1rem;
+  text-align: center;
+  font-size: .9rem;
+  color: var(--muted);
+  background: var(--panel);
+}
+footer a { color: var(--brand); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BookLog</h1>
+  <p>Catalog your books and reading progress</p>
+</header>
+<main>
+  <form id="bookForm">
+    <input type="text" id="title" placeholder="Book title" required>
+    <input type="text" id="author" placeholder="Author" required>
+    <select id="status" required>
+      <option value="">Select status</option>
+      <option>To Read</option>
+      <option>Reading</option>
+      <option>Completed</option>
+    </select>
+    <input type="number" id="rating" placeholder="Rating (1-5)">
+    <button type="submit">Add Book</button>
+  </form>
+  <div class="entry-list" id="bookList"></div>
+</main>
+<footer>
+  © <span id="year"></span> Bocaletto Luca — 
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a> — 
+  <a href="https://github.com/bocaletto-luca" target="_blank" rel="noopener">GitHub</a> — BookLog
+</footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+const form = document.getElementById('bookForm');
+const list = document.getElementById('bookList');
+let books = JSON.parse(localStorage.getItem('booklog_books') || '[]');
+
+function renderBooks(){
+  list.innerHTML = '';
+  books.forEach((b, i) => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <h3>${b.title} <small>by ${b.author}</small></h3>
+      <p><strong>Status:</strong> ${b.status}</p>
+      ${b.rating ? `<p><strong>Rating:</strong> ${b.rating}/5</p>` : ''}
+      <button data-index="${i}">Delete</button>
+    `;
+    div.querySelector('button').onclick = () => {
+      books.splice(i,1);
+      save();
+    };
+    list.appendChild(div);
+  });
+}
+
+function save(){
+  localStorage.setItem('booklog_books', JSON.stringify(books));
+  renderBooks();
+}
+
+form.onsubmit = e => {
+  e.preventDefault();
+  books.push({
+    title: form.title.value.trim(),
+    author: form.author.value.trim(),
+    status: form.status.value,
+    rating: form.rating.value.trim()
+  });
+  form.reset();
+  save();
+};
+
+renderBooks();
+</script>
+</body>
+</html>
